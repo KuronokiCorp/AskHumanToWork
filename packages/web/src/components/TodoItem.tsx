@@ -1,20 +1,22 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { Bot, Check, Clock, Flag, Hash } from 'lucide-react';
 import type { Todo } from '@askhumantowork/shared';
 import { api } from '../api';
+import { Chip } from './ui';
 
-const priorityColors = ['', 'text-sky-600', 'text-amber-600', 'text-red-600'];
+const priorityTone = { 1: 'text-sky-500', 2: 'text-amber-500', 3: 'text-red-500' } as const;
 
-export function dueLabel(t: Todo): { text: string; cls: string } {
-  if (!t.dueAt) return { text: '', cls: '' };
+export function dueLabel(t: Todo): { text: string; overdue: boolean } {
+  if (!t.dueAt) return { text: '', overdue: false };
   const due = new Date(t.dueAt);
   const now = new Date();
-  const overdue = due < now && t.status === 'open';
+  const overdue = due < now && (t.status === 'open' || t.status === 'doing');
   const sameDay = due.toDateString() === now.toDateString();
   const text = sameDay
     ? due.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : due.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  return { text, cls: overdue ? 'text-red-600 font-medium' : 'text-zinc-500' };
+  return { text, overdue };
 }
 
 export default function TodoItem({ todo }: { todo: Todo }) {
@@ -33,42 +35,64 @@ export default function TodoItem({ todo }: { todo: Todo }) {
   const due = dueLabel(todo);
 
   return (
-    <div className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 hover:shadow-sm">
+    <div
+      className={`group flex items-start gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3.5 shadow-card transition-all hover:-translate-y-px hover:shadow-card-hover ${done ? 'opacity-70' : ''}`}
+    >
       <button
         onClick={() => (done ? reopen.mutate() : complete.mutate())}
-        className={`mt-0.5 h-5 w-5 shrink-0 rounded-full border-2 ${done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-zinc-300 hover:border-indigo-500'}`}
         title={done ? 'Reopen' : 'Complete'}
+        className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+          done
+            ? 'animate-pop border-emerald-500 bg-emerald-500 text-white'
+            : 'border-zinc-300 text-transparent hover:border-violet-500 hover:bg-violet-50 hover:text-violet-400'
+        }`}
       >
-        {done && <span className="block text-xs leading-4">✓</span>}
+        <Check size={13} strokeWidth={3.5} />
       </button>
+
       <div className="min-w-0 flex-1">
         <Link to={`/t/${todo.id}`} className="block">
-          <div className={`truncate text-sm ${done ? 'text-zinc-400 line-through' : 'font-medium'}`}>
+          <div className={`flex items-center gap-1.5 truncate text-[14.5px] ${done ? 'text-zinc-400 line-through' : 'font-medium text-zinc-800 group-hover:text-zinc-950'}`}>
             {todo.priority > 0 && (
-              <span className={`mr-1 ${priorityColors[todo.priority]}`}>{'!'.repeat(todo.priority)}</span>
+              <Flag
+                size={13}
+                strokeWidth={2.5}
+                className={`shrink-0 ${priorityTone[todo.priority as 1 | 2 | 3]}`}
+                fill="currentColor"
+              />
             )}
-            {todo.title}
+            <span className="truncate">{todo.title}</span>
           </div>
         </Link>
-        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
-          {due.text && <span className={due.cls}>⏰ {due.text}</span>}
-          {todo.projectName && <span className="text-zinc-400">#{todo.projectName}</span>}
+
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          {due.text && (
+            <Chip tone={due.overdue ? 'red' : 'zinc'}>
+              <Clock size={11} strokeWidth={2.5} />
+              {due.text}
+            </Chip>
+          )}
+          {todo.projectName && (
+            <Chip>
+              <Hash size={11} strokeWidth={2.5} />
+              {todo.projectName}
+            </Chip>
+          )}
           {todo.tags.map((tag) => (
-            <span key={tag} className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-500">
-              {tag}
-            </span>
+            <Chip key={tag}>{tag}</Chip>
           ))}
           {todo.source === 'ai' && (
-            <span
-              className="rounded bg-violet-100 px-1.5 py-0.5 text-violet-700"
-              title={todo.originContext ?? undefined}
-            >
-              🤖 {todo.createdByAgent ?? 'AI'}
-            </span>
+            <Chip tone="violet" title={todo.originContext ?? undefined}>
+              <Bot size={11} strokeWidth={2.5} />
+              {todo.createdByAgent ?? 'AI'}
+            </Chip>
           )}
         </div>
+
         {todo.source === 'ai' && todo.originContext && (
-          <div className="mt-1 text-xs italic text-violet-600/70">“{todo.originContext}”</div>
+          <div className="mt-1.5 border-l-2 border-violet-200 pl-2 text-[12px] italic leading-snug text-violet-500/90">
+            {todo.originContext}
+          </div>
         )}
       </div>
     </div>

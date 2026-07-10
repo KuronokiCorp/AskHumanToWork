@@ -1,5 +1,25 @@
 import { useState } from 'react';
+import { BellRing, Bot, RefreshCw } from 'lucide-react';
 import { api } from '../api';
+import { Button, Logo, inputCls } from '../components/ui';
+
+const features = [
+  {
+    Icon: Bot,
+    title: 'AI agents capture your todos',
+    body: 'Claude and any MCP client file follow-ups straight into your list — with the reason they exist.',
+  },
+  {
+    Icon: BellRing,
+    title: 'Reminders that don’t give up',
+    body: '1 day before, 1 hour before, at due — then daily nudges until it’s actually done.',
+  },
+  {
+    Icon: RefreshCw,
+    title: 'Syncs where you already look',
+    body: 'Mirror tasks to Microsoft To Do and Google Tasks, two-way. (Pro)',
+  },
+];
 
 export default function Login({ onDone }: { onDone: () => void }) {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -24,44 +44,102 @@ export default function Login({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <form onSubmit={submit} className="w-96 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <div className="mb-1 text-2xl font-bold">✅ AskHumanToWork</div>
-        <p className="mb-6 text-sm text-zinc-500">
-          The todo hub for heavy AI users — agents capture, we remind.
-        </p>
-        <label className="mb-1 block text-sm font-medium">Email</label>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mb-3 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+    <div className="flex min-h-screen">
+      {/* Brand panel */}
+      <div className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-zinc-950 p-12 lg:flex">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-60"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 20% 0%, rgb(124 58 237 / 0.35), transparent), radial-gradient(ellipse 60% 50% at 100% 100%, rgb(79 70 229 / 0.25), transparent)',
+          }}
         />
-        <label className="mb-1 block text-sm font-medium">Password</label>
-        <input
-          type="password"
-          required
-          minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-        />
-        {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
-        <button
-          disabled={busy}
-          className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {mode === 'login' ? 'Sign in' : 'Create account'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-          className="mt-3 w-full text-center text-sm text-indigo-600 hover:underline"
-        >
-          {mode === 'login' ? 'No account? Sign up' : 'Have an account? Sign in'}
-        </button>
-      </form>
+        <div className="relative flex items-center gap-3">
+          <Logo size={34} />
+          <div>
+            <div className="text-[15px] font-bold text-white">AskHumanToWork</div>
+            <div className="text-[11px] text-zinc-500">your AI asks · you do</div>
+          </div>
+        </div>
+
+        <div className="relative">
+          <h1 className="max-w-md text-[32px] font-bold leading-tight tracking-tight text-white">
+            Your AI remembers.
+            <br />
+            <span className="bg-gradient-to-r from-violet-400 to-indigo-300 bg-clip-text text-transparent">
+              You get it done.
+            </span>
+          </h1>
+          <div className="mt-9 space-y-5">
+            {features.map(({ Icon, title, body }) => (
+              <div key={title} className="flex max-w-md gap-3.5">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-violet-300 ring-1 ring-white/10">
+                  <Icon size={17} />
+                </span>
+                <div>
+                  <div className="text-[13.5px] font-semibold text-zinc-100">{title}</div>
+                  <div className="mt-0.5 text-[12.5px] leading-relaxed text-zinc-400">{body}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative text-[11px] text-zinc-600">
+          Every AI-created todo carries provenance — you always know why it exists.
+        </div>
+      </div>
+
+      {/* Form panel */}
+      <div className="flex flex-1 items-center justify-center bg-zinc-100/70 p-8">
+        <form onSubmit={submit} className="w-full max-w-[360px] animate-fade-in">
+          <div className="mb-7 lg:hidden">
+            <Logo size={34} />
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">
+            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+          </h2>
+          <p className="mb-6 mt-1 text-sm text-zinc-500">
+            {mode === 'login' ? 'Sign in to see what your AI has planned for you.' : 'Free forever for capture + reminders.'}
+          </p>
+
+          <label className="mb-1.5 block text-[13px] font-medium text-zinc-700">Email</label>
+          <input
+            type="email"
+            required
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={`${inputCls} mb-4`}
+            placeholder="you@example.com"
+          />
+          <label className="mb-1.5 block text-[13px] font-medium text-zinc-700">Password</label>
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={`${inputCls} mb-5`}
+            placeholder="••••••••"
+          />
+          {error && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
+              {error}
+            </div>
+          )}
+          <Button disabled={busy} className="w-full justify-center py-2.5">
+            {busy ? 'One sec…' : mode === 'login' ? 'Sign in' : 'Create account'}
+          </Button>
+          <button
+            type="button"
+            onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+            className="mt-4 w-full text-center text-[13px] font-medium text-violet-600 hover:text-violet-800"
+          >
+            {mode === 'login' ? 'No account? Sign up free' : 'Have an account? Sign in'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

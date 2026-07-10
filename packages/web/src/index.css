@@ -1,7 +1,12 @@
+@import '@fontsource-variable/inter';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  @apply bg-zinc-50 text-zinc-900 antialiased;
+  @apply bg-zinc-100/70 font-sans text-zinc-900 antialiased;
+}
+
+::selection {
+  @apply bg-violet-200;
 }

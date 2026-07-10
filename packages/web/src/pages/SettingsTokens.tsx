@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { KeyRound } from 'lucide-react';
 import { api } from '../api';
 import { TOKEN_SCOPES } from '@askhumantowork/shared';
+import { Button, Chip, EmptyState, PageHeader, SectionCard, inputCls } from '../components/ui';
 
 export default function SettingsTokens() {
   const qc = useQueryClient();
@@ -23,14 +25,14 @@ export default function SettingsTokens() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl p-8">
-      <h1 className="mb-1 text-2xl font-bold">API tokens</h1>
-      <p className="mb-6 text-sm text-zinc-500">
-        Personal access tokens let AI agents (Claude Desktop, Claude Code, …) manage your todos via MCP.
-      </p>
+    <div className="mx-auto max-w-[720px] px-8 py-10 animate-fade-in">
+      <PageHeader
+        title="API tokens"
+        subtitle="Personal access tokens let AI agents (Claude Desktop, Claude Code, …) manage your todos via MCP."
+      />
 
       <form
-        className="mb-6 flex gap-2"
+        className="mb-5 flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           create.mutate();
@@ -40,50 +42,55 @@ export default function SettingsTokens() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Token name, e.g. claude-desktop"
-          className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className={inputCls}
         />
-        <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+        <Button type="submit" className="shrink-0">
           Create token
-        </button>
+        </Button>
       </form>
 
       {created && (
-        <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 p-4">
-          <div className="mb-2 text-sm font-medium text-emerald-800">
-            Token created — copy it now, it won't be shown again:
-          </div>
-          <code className="block select-all break-all rounded bg-white p-2 text-xs">{created.token}</code>
-          <div className="mt-3 text-sm font-medium text-emerald-800">Claude Code (via npm):</div>
-          <pre className="mt-1 overflow-x-auto rounded bg-white p-2 text-xs">
+        <SectionCard tone="success" title="Token created — copy it now, it won't be shown again">
+          <code className="block select-all break-all rounded-lg bg-white p-2.5 text-xs shadow-card">{created.token}</code>
+          <div className="mt-3 text-[13px] font-semibold text-emerald-800">Claude Code:</div>
+          <pre className="mt-1 overflow-x-auto rounded-lg bg-white p-2.5 text-xs shadow-card">
 {`claude mcp add askhumantowork \\
   --env TODO_API_TOKEN=${created.token} \\
   --env TODO_API_URL=${location.protocol}//${location.hostname}:3000 \\
   -- npx -y askhumantowork-mcp`}
           </pre>
-          <div className="mt-3 text-sm font-medium text-emerald-800">Remote (Streamable HTTP):</div>
-          <pre className="mt-1 overflow-x-auto rounded bg-white p-2 text-xs">
+          <div className="mt-3 text-[13px] font-semibold text-emerald-800">Remote (Streamable HTTP):</div>
+          <pre className="mt-1 overflow-x-auto rounded-lg bg-white p-2.5 text-xs shadow-card">
 {`URL: ${location.protocol}//${location.hostname}:3000/mcp
 Header: Authorization: Bearer ${created.token}`}
           </pre>
-        </div>
+        </SectionCard>
       )}
 
       <div className="flex flex-col gap-2">
+        {tokens.data && tokens.data.tokens.length === 0 && (
+          <EmptyState icon={<KeyRound size={22} />} title="No tokens yet" hint="Create one above to connect your first AI agent." />
+        )}
         {(tokens.data?.tokens ?? []).map((t) => (
-          <div key={t.id} className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
-            <div className="flex-1">
-              <div className="text-sm font-medium">
+          <div
+            key={t.id}
+            className="flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3.5 shadow-card"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500">
+              <KeyRound size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-sm font-medium">
                 {t.name}
-                <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">{t.kind}</span>
+                <Chip>{t.kind}</Chip>
               </div>
-              <div className="text-xs text-zinc-400">
-                {t.scopes.join(', ')} · last used{' '}
-                {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleString() : 'never'}
+              <div className="mt-0.5 truncate text-xs text-zinc-400">
+                {t.scopes.join(', ')} · last used {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleString() : 'never'}
               </div>
             </div>
-            <button onClick={() => del.mutate(t.id)} className="text-sm text-red-600 hover:underline">
+            <Button variant="danger" onClick={() => del.mutate(t.id)}>
               Revoke
-            </button>
+            </Button>
           </div>
         ))}
       </div>

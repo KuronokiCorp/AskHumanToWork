@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import { api } from '../api';
 
 /**
@@ -32,6 +33,7 @@ function parseQuickAdd(text: string) {
 
 export default function QuickAdd({ defaultProject }: { defaultProject?: string }) {
   const [text, setText] = useState('');
+  const [focused, setFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const qc = useQueryClient();
 
@@ -48,7 +50,7 @@ export default function QuickAdd({ defaultProject }: { defaultProject?: string }
   });
 
   return (
-    <div className="mb-4">
+    <div className="mb-5">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -61,15 +63,30 @@ export default function QuickAdd({ defaultProject }: { defaultProject?: string }
             priority: parsed.priority,
           });
         }}
+        className={`flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-1 shadow-card transition-all ${
+          focused ? 'border-violet-400 ring-4 ring-violet-500/10' : 'border-zinc-200/80'
+        }`}
       >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-500 text-white">
+          <Plus size={14} strokeWidth={3} />
+        </span>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder='Add a todo…  e.g. "Send report @friday 5pm #Work !2"'
-          className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="Add a todo…"
+          className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-zinc-400"
         />
+        {focused && (
+          <div className="hidden shrink-0 items-center gap-1 text-[10.5px] text-zinc-400 sm:flex">
+            <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 py-px">@due</kbd>
+            <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 py-px">#project</kbd>
+            <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 py-px">!1-3</kbd>
+          </div>
+        )}
       </form>
-      {error && <div className="mt-1 text-xs text-red-600">{error}</div>}
+      {error && <div className="mt-1.5 px-1 text-xs text-red-600">{error}</div>}
     </div>
   );
 }

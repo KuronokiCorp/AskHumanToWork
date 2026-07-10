@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
+import { AlarmClock, ArrowLeft, Bot, Check, Moon, RotateCcw, Sun, Trash2 } from 'lucide-react';
 import { api } from '../api';
+import { Button, Chip, inputCls } from '../components/ui';
 
 export default function TodoDetail() {
   const { id } = useParams();
@@ -29,92 +31,80 @@ export default function TodoDetail() {
     onSuccess: () => navigate('/today'),
   });
 
-  if (query.isLoading) return <div className="p-8 text-zinc-400">Loading…</div>;
-  if (query.isError || !query.data) return <div className="p-8 text-red-600">Todo not found.</div>;
+  if (query.isLoading)
+    return <div className="mx-auto max-w-[680px] px-8 py-10"><div className="h-64 animate-pulse rounded-2xl bg-zinc-200/50" /></div>;
+  if (query.isError || !query.data)
+    return <div className="p-10 text-sm text-red-600">Todo not found.</div>;
   const t = query.data.todo;
+  const statusTone = t.status === 'done' ? 'emerald' : t.status === 'cancelled' ? 'zinc' : 'violet';
 
   return (
-    <div className="mx-auto max-w-2xl p-8">
-      <button onClick={() => navigate(-1)} className="mb-4 text-sm text-zinc-500 hover:text-zinc-800">
-        ← Back
+    <div className="mx-auto max-w-[680px] px-8 py-10 animate-fade-in">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+      >
+        <ArrowLeft size={14} /> Back
       </button>
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+
+      <div className="rounded-2xl border border-zinc-200/80 bg-white p-7 shadow-card">
         <div className="flex items-start justify-between gap-4">
-          <h1 className={`text-xl font-bold ${t.status === 'done' ? 'text-zinc-400 line-through' : ''}`}>
+          <h1 className={`text-[21px] font-bold leading-snug tracking-tight ${t.status === 'done' ? 'text-zinc-400 line-through' : ''}`}>
             {t.title}
           </h1>
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-            t.status === 'done' ? 'bg-emerald-100 text-emerald-700'
-            : t.status === 'cancelled' ? 'bg-zinc-100 text-zinc-500'
-            : 'bg-indigo-100 text-indigo-700'
-          }`}>
-            {t.status}
-          </span>
+          <Chip tone={statusTone}>{t.status}</Chip>
         </div>
 
         {t.source === 'ai' && (
-          <div className="mt-4 rounded-xl bg-violet-50 p-4 text-sm">
-            <div className="font-medium text-violet-800">🤖 Added by {t.createdByAgent ?? 'an AI agent'}</div>
-            {t.originContext && <div className="mt-1 text-violet-700">“{t.originContext}”</div>}
+          <div className="mt-5 rounded-xl border border-violet-200/70 bg-gradient-to-r from-violet-50 to-indigo-50/60 p-4">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-violet-800">
+              <Bot size={15} /> Added by {t.createdByAgent ?? 'an AI agent'}
+            </div>
+            {t.originContext && (
+              <div className="mt-1.5 text-[13px] italic leading-relaxed text-violet-700/90">“{t.originContext}”</div>
+            )}
           </div>
         )}
 
-        <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <dt className="text-zinc-400">Due</dt>
-            <dd>{t.dueAt ? new Date(t.dueAt).toLocaleString() : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-400">Project</dt>
-            <dd>{t.projectName ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-400">Priority</dt>
-            <dd>{['None', 'Low', 'Medium', 'High'][t.priority]}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-400">Tags</dt>
-            <dd>{t.tags.length ? t.tags.join(', ') : '—'}</dd>
-          </div>
+        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          {[
+            ['Due', t.dueAt ? new Date(t.dueAt).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'],
+            ['Project', t.projectName ?? '—'],
+            ['Priority', ['None', 'Low', 'Medium', 'High'][t.priority]],
+            ['Tags', t.tags.length ? t.tags.join(', ') : '—'],
+          ].map(([k, v]) => (
+            <div key={k as string}>
+              <dt className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">{k}</dt>
+              <dd className="mt-0.5 font-medium text-zinc-700">{v}</dd>
+            </div>
+          ))}
         </dl>
 
-        {t.notes && <div className="mt-4 whitespace-pre-wrap rounded-xl bg-zinc-50 p-4 text-sm">{t.notes}</div>}
+        {t.notes && (
+          <div className="mt-5 whitespace-pre-wrap rounded-xl bg-zinc-50 p-4 text-[13.5px] leading-relaxed text-zinc-600">
+            {t.notes}
+          </div>
+        )}
 
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          {t.status !== 'done' && (
-            <button
-              onClick={() => complete.mutate()}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              ✓ Complete
-            </button>
+        <div className="mt-7 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-5">
+          {t.status !== 'done' ? (
+            <Button onClick={() => complete.mutate()}>
+              <Check size={15} strokeWidth={2.5} /> Complete
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => update.mutate({ status: 'open' })}>
+              <RotateCcw size={14} /> Reopen
+            </Button>
           )}
-          {t.status === 'done' && (
-            <button
-              onClick={() => update.mutate({ status: 'open' })}
-              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50"
-            >
-              Reopen
-            </button>
-          )}
-          <button
-            onClick={() => snooze.mutate('in 1 hour')}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50"
-          >
-            💤 Snooze 1h
-          </button>
-          <button
-            onClick={() => snooze.mutate('tomorrow 9am')}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50"
-          >
-            💤 Tomorrow
-          </button>
-          <button
-            onClick={() => del.mutate()}
-            className="ml-auto rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-          >
-            Delete
-          </button>
+          <Button variant="secondary" onClick={() => snooze.mutate('in 1 hour')}>
+            <Moon size={14} /> Snooze 1h
+          </Button>
+          <Button variant="secondary" onClick={() => snooze.mutate('tomorrow 9am')}>
+            <Sun size={14} /> Tomorrow
+          </Button>
+          <Button variant="danger" className="ml-auto" onClick={() => del.mutate()}>
+            <Trash2 size={14} /> Delete
+          </Button>
         </div>
 
         <form
@@ -129,11 +119,11 @@ export default function TodoDetail() {
             value={dueText}
             onChange={(e) => setDueText(e.target.value)}
             placeholder='Reschedule… e.g. "next tuesday 3pm"'
-            className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            className={inputCls}
           />
-          <button className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50">
-            Reschedule
-          </button>
+          <Button variant="secondary" type="submit" className="shrink-0">
+            <AlarmClock size={14} /> Reschedule
+          </Button>
         </form>
       </div>
     </div>

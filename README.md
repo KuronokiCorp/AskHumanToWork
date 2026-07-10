@@ -19,6 +19,8 @@ Every AI-created todo shows **who** added it and **why**:
 
 ![AI Inbox with provenance](docs/images/ai-inbox.png)
 
+![Login](docs/images/login.png)
+
 ---
 
 # Tutorial — zero to your first AI-captured todo

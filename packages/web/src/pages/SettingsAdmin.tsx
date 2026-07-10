@@ -1,21 +1,31 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
+import { Button, Chip, PageHeader, SectionCard, inputCls } from '../components/ui';
+
+const selectCls =
+  'rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-sm shadow-card outline-none transition focus:border-violet-400';
 
 export default function SettingsAdmin() {
   const qc = useQueryClient();
   const providers = useQuery({ queryKey: ['admin-providers'], queryFn: api.adminProviders });
 
   return (
-    <div className="mx-auto max-w-3xl p-8">
-      <h1 className="mb-1 text-2xl font-bold">Admin — provider OAuth apps</h1>
-      <p className="mb-6 text-sm text-zinc-500">
-        Register your own OAuth application with each provider, then paste its credentials here to
-        enable the integration for all users. Redirect URI:{' '}
-        <code className="rounded bg-zinc-100 px-1">
-          {location.protocol}//{location.hostname}:3000/api/integrations/&lt;provider&gt;/callback
-        </code>
-      </p>
+    <div className="mx-auto max-w-[720px] px-8 py-10 animate-fade-in">
+      <PageHeader
+        title="Admin"
+        subtitle={
+          <>
+            Provider OAuth apps and user plans. Redirect URI for OAuth apps:{' '}
+            <code className="rounded bg-zinc-200/70 px-1.5 py-0.5 text-[11.5px]">
+              {location.protocol}//{location.hostname}:3000/api/integrations/&lt;provider&gt;/callback
+            </code>
+          </>
+        }
+      />
+
+      <PlanForm />
+
       {(providers.data?.providers ?? []).map((p) => (
         <ProviderForm
           key={p.provider}
@@ -25,18 +35,20 @@ export default function SettingsAdmin() {
           onSaved={() => void qc.invalidateQueries({ queryKey: ['admin-providers'] })}
         />
       ))}
-      <PlanForm />
-      <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-4 text-xs text-zinc-500">
-        <div className="mb-1 font-medium text-zinc-700">Where to register:</div>
-        <div>
-          <b>Microsoft To Do:</b> Azure Portal → App registrations → delegated permission{' '}
-          <code>Tasks.ReadWrite</code> + <code>offline_access</code>.
+
+      <SectionCard title="Where to register OAuth apps">
+        <div className="space-y-1.5 text-xs leading-relaxed text-zinc-500">
+          <div>
+            <b className="text-zinc-700">Microsoft To Do:</b> Azure Portal → App registrations → delegated permission{' '}
+            <code className="rounded bg-zinc-100 px-1">Tasks.ReadWrite</code> +{' '}
+            <code className="rounded bg-zinc-100 px-1">offline_access</code>
+          </div>
+          <div>
+            <b className="text-zinc-700">Google Tasks:</b> Google Cloud Console → OAuth consent + credentials → scope{' '}
+            <code className="rounded bg-zinc-100 px-1">https://www.googleapis.com/auth/tasks</code>
+          </div>
         </div>
-        <div>
-          <b>Google Tasks:</b> Google Cloud Console → OAuth consent + credentials → scope{' '}
-          <code>https://www.googleapis.com/auth/tasks</code>.
-        </div>
-      </div>
+      </SectionCard>
     </div>
   );
 }
@@ -52,16 +64,14 @@ function PlanForm() {
   });
 
   return (
-    <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4">
-      <div className="mb-1 text-sm font-medium">
-        User plans
-        <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
-          integrations = Pro-only
+    <SectionCard
+      title={
+        <span className="flex items-center gap-2">
+          User plans <Chip tone="amber">integrations = Pro-only</Chip>
         </span>
-      </div>
-      <p className="mb-2 text-xs text-zinc-500">
-        Until billing checkout ships, upgrade users manually here.
-      </p>
+      }
+      description="Until billing checkout ships, upgrade users manually here."
+    >
       <form
         className="flex gap-2"
         onSubmit={(e) => {
@@ -74,22 +84,18 @@ function PlanForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="user@email.com"
           type="email"
-          className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className={inputCls}
         />
-        <select
-          value={plan}
-          onChange={(e) => setPlan(e.target.value as 'free' | 'pro')}
-          className="rounded-lg border border-zinc-300 px-2 py-2 text-sm"
-        >
+        <select value={plan} onChange={(e) => setPlan(e.target.value as 'free' | 'pro')} className={selectCls}>
           <option value="pro">Pro</option>
           <option value="free">Free</option>
         </select>
-        <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+        <Button type="submit" className="shrink-0">
           Set plan
-        </button>
+        </Button>
       </form>
       {result && <div className="mt-2 text-xs text-zinc-600">{result}</div>}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -116,15 +122,14 @@ function ProviderForm({
   });
 
   return (
-    <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4">
-      <div className="mb-2 text-sm font-medium">
-        {displayName}
-        <span
-          className={`ml-2 rounded px-1.5 py-0.5 text-xs ${configured ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-500'}`}
-        >
-          {configured ? 'configured' : 'not configured'}
+    <SectionCard
+      title={
+        <span className="flex items-center gap-2">
+          {displayName}
+          <Chip tone={configured ? 'emerald' : 'zinc'}>{configured ? 'configured' : 'not configured'}</Chip>
         </span>
-      </div>
+      }
+    >
       <form
         className="flex gap-2"
         onSubmit={(e) => {
@@ -136,20 +141,20 @@ function ProviderForm({
           value={clientId}
           onChange={(e) => setClientId(e.target.value)}
           placeholder="Client ID"
-          className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className={inputCls}
         />
         <input
           value={clientSecret}
           onChange={(e) => setClientSecret(e.target.value)}
           placeholder="Client secret"
           type="password"
-          className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className={inputCls}
         />
-        <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+        <Button type="submit" className="shrink-0">
           Save
-        </button>
+        </Button>
       </form>
       {save.isError && <div className="mt-2 text-xs text-red-600">{String(save.error)}</div>}
-    </div>
+    </SectionCard>
   );
 }

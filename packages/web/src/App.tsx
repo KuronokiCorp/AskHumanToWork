@@ -1,6 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import {
+  Bell,
+  Bot,
+  CalendarDays,
+  CalendarRange,
+  Flame,
+  KeyRound,
+  LayoutList,
+  LogOut,
+  Plug,
+  ShieldCheck,
+} from 'lucide-react';
 import { api, ApiError } from './api';
+import { Logo } from './components/ui';
 import Login from './pages/Login';
 import TodosView from './pages/TodosView';
 import TodoDetail from './pages/TodoDetail';
@@ -10,18 +23,34 @@ import SettingsNotifications from './pages/SettingsNotifications';
 import SettingsAdmin from './pages/SettingsAdmin';
 
 const nav = [
-  { to: '/today', label: 'Today', icon: '📅' },
-  { to: '/upcoming', label: 'Upcoming', icon: '🗓' },
-  { to: '/overdue', label: 'Overdue', icon: '🔥' },
-  { to: '/inbox-ai', label: 'AI Inbox', icon: '🤖' },
-  { to: '/all', label: 'All todos', icon: '📋' },
+  { to: '/today', label: 'Today', Icon: CalendarDays },
+  { to: '/upcoming', label: 'Upcoming', Icon: CalendarRange },
+  { to: '/overdue', label: 'Overdue', Icon: Flame },
+  { to: '/inbox-ai', label: 'AI Inbox', Icon: Bot },
+  { to: '/all', label: 'All todos', Icon: LayoutList },
 ];
 
 const settingsNav = [
-  { to: '/settings/tokens', label: 'API tokens (MCP)' },
-  { to: '/settings/integrations', label: 'Integrations' },
-  { to: '/settings/notifications', label: 'Notifications' },
+  { to: '/settings/tokens', label: 'API tokens', Icon: KeyRound },
+  { to: '/settings/integrations', label: 'Integrations', Icon: Plug },
+  { to: '/settings/notifications', label: 'Notifications', Icon: Bell },
 ];
+
+function SideLink({ to, label, Icon }: { to: string; label: string; Icon: typeof Bell }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `group flex items-center gap-2.5 rounded-lg px-3 py-[7px] text-[13.5px] font-medium transition-colors ${
+          isActive ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+        }`
+      }
+    >
+      <Icon size={16} strokeWidth={2} className="opacity-80" />
+      {label}
+    </NavLink>
+  );
+}
 
 export default function App() {
   const me = useQuery({
@@ -31,69 +60,58 @@ export default function App() {
   });
 
   if (me.isLoading) {
-    return <div className="flex h-screen items-center justify-center text-zinc-400">Loading…</div>;
+    return (
+      <div className="flex h-screen items-center justify-center gap-3 text-zinc-400">
+        <Logo size={26} /> Loading…
+      </div>
+    );
   }
   if (me.isError) return <Login onDone={() => me.refetch()} />;
 
-  const projects = <ProjectNav />;
-
   return (
     <div className="flex min-h-screen">
-      <aside className="w-60 shrink-0 border-r border-zinc-200 bg-white p-4 flex flex-col gap-1">
-        <div className="mb-4 flex items-center gap-2 px-2">
-          <span className="text-xl">✅</span>
-          <span className="font-bold">AskHumanToWork</span>
+      <aside className="fixed inset-y-0 flex w-[232px] flex-col gap-0.5 bg-zinc-950 p-3">
+        <div className="mb-4 flex items-center gap-2.5 px-2 pt-1.5">
+          <Logo size={28} />
+          <div className="leading-tight">
+            <div className="text-[13.5px] font-bold text-white">AskHumanToWork</div>
+            <div className="text-[10.5px] text-zinc-500">your AI asks · you do</div>
+          </div>
         </div>
+
         {nav.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            className={({ isActive }) =>
-              `rounded-lg px-3 py-1.5 text-sm ${isActive ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-zinc-600 hover:bg-zinc-100'}`
-            }
-          >
-            <span className="mr-2">{n.icon}</span>
-            {n.label}
-          </NavLink>
+          <SideLink key={n.to} {...n} />
         ))}
-        <div className="mt-4 px-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">Projects</div>
-        {projects}
-        <div className="mt-4 px-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">Settings</div>
+
+        <div className="mb-1 mt-5 px-3 text-[10.5px] font-semibold uppercase tracking-wider text-zinc-600">
+          Projects
+        </div>
+        <ProjectNav />
+
+        <div className="mb-1 mt-5 px-3 text-[10.5px] font-semibold uppercase tracking-wider text-zinc-600">
+          Settings
+        </div>
         {settingsNav.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            className={({ isActive }) =>
-              `rounded-lg px-3 py-1.5 text-sm ${isActive ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-zinc-600 hover:bg-zinc-100'}`
-            }
-          >
-            {n.label}
-          </NavLink>
+          <SideLink key={n.to} {...n} />
         ))}
-        {me.data?.isAdmin && (
-          <NavLink
-            to="/settings/admin"
-            className={({ isActive }) =>
-              `rounded-lg px-3 py-1.5 text-sm ${isActive ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-zinc-600 hover:bg-zinc-100'}`
-            }
-          >
-            Admin
-          </NavLink>
-        )}
-        <div className="mt-auto pt-4">
-          <div className="px-3 text-xs text-zinc-400">{me.data?.email}</div>
+        {me.data?.isAdmin && <SideLink to="/settings/admin" label="Admin" Icon={ShieldCheck} />}
+
+        <div className="mt-auto border-t border-white/10 pt-3">
+          <div className="truncate px-3 text-[11.5px] text-zinc-500">{me.data?.email}</div>
           <button
-            className="mt-1 w-full rounded-lg px-3 py-1.5 text-left text-sm text-zinc-500 hover:bg-zinc-100"
+            className="mt-1 flex w-full items-center gap-2.5 rounded-lg px-3 py-[7px] text-left text-[13.5px] font-medium text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-200"
             onClick={async () => {
               await api.logout();
               location.href = '/';
             }}
           >
+            <LogOut size={16} strokeWidth={2} className="opacity-80" />
             Sign out
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto">
+
+      <main className="ml-[232px] flex-1">
         <Routes>
           <Route path="/" element={<Navigate to="/today" replace />} />
           <Route path="/today" element={<TodosView view="today" />} />
@@ -122,11 +140,16 @@ function ProjectNav() {
           key={p.id}
           to={`/project/${encodeURIComponent(p.name)}`}
           className={({ isActive }) =>
-            `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${isActive ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-zinc-600 hover:bg-zinc-100'}`
+            `flex items-center gap-2.5 rounded-lg px-3 py-[7px] text-[13.5px] font-medium transition-colors ${
+              isActive ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+            }`
           }
         >
-          <span className="h-2 w-2 rounded-full" style={{ background: p.color ?? '#a1a1aa' }} />
-          {p.name}
+          <span
+            className="h-2 w-2 shrink-0 rounded-full ring-2 ring-white/10"
+            style={{ background: p.color ?? '#71717a' }}
+          />
+          <span className="truncate">{p.name}</span>
         </NavLink>
       ))}
     </>
