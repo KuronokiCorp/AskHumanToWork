@@ -45,5 +45,14 @@
     "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KuronokiCorp/AskHumanToWork.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/KuronokiCorp/AskHumanToWork#readme",
+  "bugs": {
+    "url": "https://github.com/KuronokiCorp/AskHumanToWork/issues"
   }
 }

@@ -1,6 +1,6 @@
 # askhumantowork-mcp
 
-MCP server for [AskHumanToWork](https://github.com/) — the todo hub where **AI agents capture your
+MCP server for [AskHumanToWork](https://github.com/KuronokiCorp/AskHumanToWork) — the todo hub where **AI agents capture your
 todos** (with due dates and "why this exists" provenance) and the system **reminds you until they're
 done**.
 

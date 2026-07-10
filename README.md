@@ -42,7 +42,7 @@ createdb askhumantowork
 ## 1. Install & configure
 
 ```bash
-git clone <this-repo> && cd <repo>
+git clone https://github.com/KuronokiCorp/AskHumanToWork.git && cd AskHumanToWork
 pnpm install
 
 cp .env.example .env
