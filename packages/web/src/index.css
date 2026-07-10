@@ -1,10 +1,11 @@
-@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   @apply bg-zinc-100/70 font-sans text-zinc-900 antialiased;
+  font-feature-settings: 'liga' 1, 'calt' 1;
 }
 
 ::selection {

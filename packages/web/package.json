@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@askhumantowork/shared": "workspace:*",
-    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@tanstack/react-query": "^5.62.11",
     "lucide-react": "^1.24.0",
     "react": "^18.3.1",
