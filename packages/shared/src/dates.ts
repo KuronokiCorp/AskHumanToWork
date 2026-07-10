@@ -38,11 +38,23 @@ export function resolveNaturalDate(
   timezone: string,
   reference: Date = new Date(),
 ): Date | null {
-  const offset = timezoneOffsetMinutes(timezone, reference);
-  const results = chrono.parse(text, { instant: reference, timezone: offset }, { forwardDate: true });
+  // chrono mixes the machine's local timezone into weekday/rollover math, which
+  // makes results depend on where the SERVER runs. To be machine-independent we
+  // shift the reference so that machine-local wall time == the user's wall time,
+  // let chrono think entirely in that frame, then reinterpret the result as a
+  // wall time in the user's timezone.
+  const machineOffset = -reference.getTimezoneOffset();
+  const userOffset = timezoneOffsetMinutes(timezone, reference);
+  const shiftedRef = new Date(reference.getTime() + (userOffset - machineOffset) * 60_000);
+
+  const results = chrono.parse(text, shiftedRef, { forwardDate: true });
   const first = results[0];
   if (!first) return null;
   const component = first.start;
+
+  // Explicit offsets in the text ("2026-07-10T15:00+02:00") are absolute already.
+  if (component.isCertain('timezoneOffset')) return component.date();
+
   // chrono implies a time when none is stated: bare dates ("next tuesday") get
   // 12:00, while relative phrases ("in 3 days") carry the current time-of-day.
   // Re-default only the bare-date case to 09:00 local — a friendlier due time.
@@ -52,7 +64,17 @@ export function resolveNaturalDate(
     assignable.assign('hour', 9);
     assignable.assign('minute', 0);
   }
-  return component.date();
+
+  // `parsed`'s machine-local wall time is the intended wall time in the user's tz.
+  const parsed = component.date();
+  const machineOffsetAtParsed = -parsed.getTimezoneOffset();
+  let corrected = new Date(parsed.getTime() + (machineOffsetAtParsed - userOffset) * 60_000);
+  // Re-check the user offset at the corrected instant (DST boundaries).
+  const userOffsetAtCorrected = timezoneOffsetMinutes(timezone, corrected);
+  if (userOffsetAtCorrected !== userOffset) {
+    corrected = new Date(parsed.getTime() + (machineOffsetAtParsed - userOffsetAtCorrected) * 60_000);
+  }
+  return corrected;
 }
 
 /** Format a Date as an ISO string in the user's timezone for display back to agents. */
