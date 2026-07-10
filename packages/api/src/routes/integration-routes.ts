@@ -22,8 +22,14 @@ function isProvider(p: string): p is Provider {
 
 export function registerIntegrationRoutes(app: FastifyInstance, ctx: AppContext) {
   const auth = requireAuth(ctx);
-  // in-memory OAuth state store (single-process dev server)
-  const oauthStates = new Map<string, { userId: string; provider: Provider; expires: number }>();
+  // OAuth state lives in Redis (10-min TTL) so callbacks survive restarts/multiple instances.
+  const stateKey = (state: string) => `oauth-state:${state}`;
+  const putState = (state: string, data: { userId: string; provider: Provider }) =>
+    ctx.redis.set(stateKey(state), JSON.stringify(data), 'EX', 600);
+  const takeState = async (state: string) => {
+    const raw = await ctx.redis.getdel(stateKey(state));
+    return raw ? (JSON.parse(raw) as { userId: string; provider: Provider }) : null;
+  };
 
   app.get(
     '/api/integrations',
@@ -81,7 +87,7 @@ export function registerIntegrationRoutes(app: FastifyInstance, ctx: AppContext)
       });
     }
     const state = randomBytes(16).toString('hex');
-    oauthStates.set(state, { userId: req.auth!.userId, provider, expires: Date.now() + 600_000 });
+    await putState(state, { userId: req.auth!.userId, provider });
     const redirectUri = `${env.apiBaseUrl}/api/integrations/${provider}/callback`;
     return reply.redirect(adapters[provider].authorizeUrl(creds.clientId, redirectUri, state));
   });
@@ -92,9 +98,8 @@ export function registerIntegrationRoutes(app: FastifyInstance, ctx: AppContext)
     if (!isProvider(provider) || !code || !state) {
       return reply.code(400).send({ error: 'invalid callback' });
     }
-    const pending = oauthStates.get(state);
-    oauthStates.delete(state);
-    if (!pending || pending.expires < Date.now() || pending.provider !== provider) {
+    const pending = await takeState(state);
+    if (!pending || pending.provider !== provider) {
       return reply.code(400).send({ error: 'expired or invalid oauth state' });
     }
     const creds = await getProviderCredentials(ctx, provider);

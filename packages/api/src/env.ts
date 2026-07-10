@@ -11,6 +11,12 @@ export const env = {
   apiBaseUrl: process.env.API_BASE_URL ?? 'http://localhost:3000',
   webBaseUrl: process.env.WEB_BASE_URL ?? 'http://localhost:5173',
   sessionSecret: process.env.SESSION_SECRET ?? 'dev-session-secret-change-me-32chars!',
+  /** Set COOKIE_SECURE=true behind HTTPS in production. */
+  cookieSecure: process.env.COOKIE_SECURE === 'true',
+  /** Set TRUST_PROXY=true when behind a reverse proxy / load balancer. */
+  trustProxy: process.env.TRUST_PROXY === 'true',
+  /** Serve the built web app (packages/web/dist) from the API process. */
+  serveWeb: process.env.SERVE_WEB === 'true',
   smtp: {
     host: process.env.SMTP_HOST ?? 'localhost',
     port: Number(process.env.SMTP_PORT ?? 1025),

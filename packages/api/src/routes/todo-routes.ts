@@ -25,9 +25,13 @@ export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
   const reminderSvc = new ReminderService(ctx);
   const auth = requireAuth(ctx);
 
-  app.setErrorHandler((err: Error, _req, reply) => {
+  app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
     if (err instanceof UserFacingError) return reply.code(400).send({ error: err.message });
     if (err.name === 'ZodError') return reply.code(400).send({ error: 'validation', details: err });
+    // Errors with an explicit status (rate limit 429, fastify 4xx) pass through.
+    if (err.statusCode && err.statusCode < 500) {
+      return reply.code(err.statusCode).send({ error: err.message });
+    }
     app.log.error(err);
     return reply.code(500).send({ error: 'internal error' });
   });

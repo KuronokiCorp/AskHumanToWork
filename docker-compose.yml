@@ -1,7 +1,53 @@
-# Deployment / alternative to Homebrew services for local dev.
-# Local dev on this machine currently uses `brew services` (postgresql@16, redis, mailpit).
+# Infra for local dev (alternative to Homebrew services) and full-stack deploy.
+#   Infra only:  docker compose up -d
+#   Full stack:  docker compose --profile app up -d --build
 version: "3.9"
 services:
+  app:
+    build: .
+    profiles: [app]
+    command: sh -c "node packages/db/dist/migrate.js && node packages/api/dist/index.js"
+    environment:
+      DATABASE_URL: postgres://askhumantowork:askhumantowork@postgres:5432/askhumantowork
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SERVE_WEB: "true"
+      TRUST_PROXY: "true"
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
+      SESSION_SECRET: ${SESSION_SECRET:?set in .env}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set in .env}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build: .
+    profiles: [app]
+    command: node packages/api/dist/worker.js
+    environment:
+      DATABASE_URL: postgres://askhumantowork:askhumantowork@postgres:5432/askhumantowork
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
+      SESSION_SECRET: ${SESSION_SECRET:?set in .env}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set in .env}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
   postgres:
     image: postgres:16
     environment:

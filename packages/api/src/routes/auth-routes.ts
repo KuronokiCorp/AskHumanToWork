@@ -7,7 +7,10 @@ import { loginInputSchema, signupInputSchema } from '@askhumantowork/shared';
 import { requireAuth } from '../auth.js';
 
 export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
-  app.post('/api/auth/signup', async (req, reply) => {
+  // Credential endpoints get strict limits (brute-force protection).
+  const strictLimit = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
+
+  app.post('/api/auth/signup', strictLimit, async (req, reply) => {
     const input = signupInputSchema.parse(req.body);
     const existing = await ctx.db.query.users.findFirst({ where: eq(users.email, input.email) });
     if (existing) return reply.code(409).send({ error: 'email already registered' });
@@ -23,7 +26,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
     return { id: user!.id, email: user!.email, timezone: user!.timezone };
   });
 
-  app.post('/api/auth/login', async (req, reply) => {
+  app.post('/api/auth/login', strictLimit, async (req, reply) => {
     const input = loginInputSchema.parse(req.body);
     const user = await ctx.db.query.users.findFirst({ where: eq(users.email, input.email) });
     if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
