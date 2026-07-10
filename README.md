@@ -213,6 +213,21 @@ Everything is free except third-party sync (Pro). Gating is enforced server-side
 402, no outbound fan-out, inbound pollers skip). Until billing ships, admins set plans on the
 Admin page.
 
+## Deploying
+
+Single-image deploy — the API container also serves the built web app (`SERVE_WEB=true`) and runs
+migrations on start; a second container from the same image runs the reminder/sync worker:
+
+```bash
+cp .env.example .env      # set SESSION_SECRET + ENCRYPTION_KEY (+ VAPID keys)
+docker compose --profile app up -d --build
+# → http://localhost:3000 (web + API + MCP), worker running, Postgres/Redis/Mailpit included
+```
+
+For a real host (Fly.io / Railway / a VPS): build the `Dockerfile`, provide `DATABASE_URL`,
+`REDIS_URL`, SMTP credentials, and set `COOKIE_SECURE=true` + `TRUST_PROXY=true` behind HTTPS.
+Sessions and rate limits are Redis-backed, so multiple API instances are safe.
+
 ## Publishing the npm connector
 
 ```bash
