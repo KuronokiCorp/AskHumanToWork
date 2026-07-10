@@ -1,0 +1,49 @@
+{
+  "name": "askhumantowork-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for AskHumanToWork — lets AI agents (Claude Desktop, Claude Code, any MCP client) add todos with due dates and provenance to your AskHumanToWork account, fetch your agenda, and manage tasks. Requires an AskHumanToWork API token.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "askhumantowork-mcp": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "todo",
+    "claude",
+    "ai-agents",
+    "reminders"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@askhumantowork/shared": "workspace:*",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

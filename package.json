@@ -1,0 +1,21 @@
+{
+  "name": "askhumantowork",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Todo hub for heavy AI users — AI agents capture todos via MCP, reliable reminders, mirrors to MS To Do / Google Tasks",
+  "packageManager": "pnpm@10.12.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @askhumantowork/api --filter @askhumantowork/web dev",
+    "dev:api": "pnpm --filter @askhumantowork/api dev",
+    "dev:web": "pnpm --filter @askhumantowork/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @askhumantowork/db generate",
+    "db:migrate": "pnpm --filter @askhumantowork/db migrate",
+    "db:seed": "pnpm --filter @askhumantowork/db seed"
+  }
+}

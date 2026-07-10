@@ -1,0 +1,24 @@
+import { config } from 'dotenv';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+// Load the repo-root .env regardless of cwd.
+const here = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(here, '../../../.env') });
+
+export const env = {
+  port: Number(process.env.API_PORT ?? 3000),
+  apiBaseUrl: process.env.API_BASE_URL ?? 'http://localhost:3000',
+  webBaseUrl: process.env.WEB_BASE_URL ?? 'http://localhost:5173',
+  sessionSecret: process.env.SESSION_SECRET ?? 'dev-session-secret-change-me-32chars!',
+  smtp: {
+    host: process.env.SMTP_HOST ?? 'localhost',
+    port: Number(process.env.SMTP_PORT ?? 1025),
+    from: process.env.SMTP_FROM ?? 'reminders@askhumantowork.local',
+  },
+  vapid: {
+    publicKey: process.env.VAPID_PUBLIC_KEY ?? '',
+    privateKey: process.env.VAPID_PRIVATE_KEY ?? '',
+    subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@askhumantowork.local',
+  },
+};
