@@ -1,10 +1,13 @@
 import { and, desc, eq, gte, isNotNull, lt, sql, type SQL } from 'drizzle-orm';
 import { projects, todos, users } from '@askhumantowork/db';
 import {
+  nextOccurrence,
+  parseRecurrence,
   resolveNaturalDate,
   type CreateTodoInput,
   type ListTodosQuery,
   type Provider,
+  type Recurrence,
   type Todo,
   type UpdateTodoInput,
 } from '@askhumantowork/shared';
@@ -58,7 +61,7 @@ export class TodoService {
     meta: { source: 'human' | 'ai'; agent?: string } = { source: 'human' },
   ): Promise<CreateTodoResult> {
     const user = await this.getUser(userId);
-    const dueAt = this.resolveDue(input, user.timezone) ?? null;
+    let dueAt = this.resolveDue(input, user.timezone) ?? null;
 
     const project = input.project
       ? await this.projectSvc.resolveByName(userId, input.project)
@@ -79,6 +82,17 @@ export class TodoService {
       return { todo: serializeTodo(existing, project), deduplicated: true, sync: [] };
     }
 
+    let recurrence: Recurrence | null = null;
+    if (input.repeat) {
+      recurrence = parseRecurrence(input.repeat);
+      if (!recurrence) throw new UserFacingError(`Could not parse recurrence: "${input.repeat}"`);
+      if (!dueAt) {
+        // No explicit due: derive the first occurrence from the rule (09:00 local baseline).
+        const baseline = resolveNaturalDate('today 9am', user.timezone) ?? new Date();
+        dueAt = nextOccurrence(recurrence, baseline);
+      }
+    }
+
     const [row] = await this.ctx.db
       .insert(todos)
       .values({
@@ -92,6 +106,7 @@ export class TodoService {
         createdByAgent: meta.agent ?? null,
         originContext: input.originContext ?? null,
         tags: input.tags ?? [],
+        recurrence,
         dedupHash,
       })
       .returning();
@@ -133,6 +148,15 @@ export class TodoService {
       patch.status = input.status;
       patch.completedAt = input.status === 'done' ? new Date() : null;
     }
+    if (input.repeat !== undefined) {
+      if (input.repeat === null) {
+        patch.recurrence = null;
+      } else {
+        const rule = parseRecurrence(input.repeat);
+        if (!rule) throw new UserFacingError(`Could not parse recurrence: "${input.repeat}"`);
+        patch.recurrence = rule;
+      }
+    }
 
     const [row] = await this.ctx.db
       .update(todos)
@@ -144,6 +168,10 @@ export class TodoService {
     if (input.status === 'done' || input.status === 'cancelled') {
       await this.reminderSvc.cancelForTodo(todoId);
       await enqueueTodoSync(this.ctx, row, input.status === 'done' ? 'complete' : 'update');
+      // Recurring: completing spawns the next occurrence (same fields, next due).
+      if (input.status === 'done' && row.recurrence && row.dueAt) {
+        await this.spawnNextOccurrence(user, row);
+      }
     } else {
       if (dueAt !== undefined && dueAt?.getTime() !== current.dueAt?.getTime()) {
         await this.reminderSvc.scheduleForTodo(todoId, {
@@ -210,6 +238,47 @@ export class TodoService {
       .offset(query.offset);
 
     return rows.map((r) => serializeTodo(r.todo, r.projectName ? { name: r.projectName } : null));
+  }
+
+  /** Create the next occurrence of a completed recurring todo. */
+  private async spawnNextOccurrence(
+    user: typeof users.$inferSelect,
+    completed: typeof todos.$inferSelect,
+  ): Promise<void> {
+    const rule = completed.recurrence as Recurrence;
+    const nextDue = nextOccurrence(rule, completed.dueAt!);
+    const dedupHash = sha256(
+      `${completed.title.trim().toLowerCase()}|${nextDue.toISOString()}|${completed.projectId ?? ''}`,
+    );
+    // Idempotent: if the next occurrence already exists (double-complete race), skip.
+    const existing = await this.ctx.db.query.todos.findFirst({
+      where: and(eq(todos.ownerId, user.id), eq(todos.dedupHash, dedupHash), eq(todos.status, 'open')),
+    });
+    if (existing) return;
+
+    const [next] = await this.ctx.db
+      .insert(todos)
+      .values({
+        ownerId: user.id,
+        projectId: completed.projectId,
+        title: completed.title,
+        notes: completed.notes,
+        dueAt: nextDue,
+        priority: completed.priority,
+        source: completed.source,
+        createdByAgent: completed.createdByAgent,
+        originContext: completed.originContext,
+        tags: completed.tags,
+        recurrence: rule,
+        dedupHash,
+      })
+      .returning();
+    if (!next) return;
+    await this.reminderSvc.scheduleForTodo(next.id, {
+      dueAt: nextDue,
+      notificationPrefs: user.notificationPrefs,
+    });
+    await enqueueTodoSync(this.ctx, next, 'create');
   }
 
   private async getOwnedRow(userId: string, todoId: string) {

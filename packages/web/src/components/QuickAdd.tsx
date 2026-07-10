@@ -10,12 +10,16 @@ import { api } from '../api';
 function parseQuickAdd(text: string) {
   let title = text;
   let dueNatural: string | undefined;
+  let repeat: string | undefined;
   let project: string | undefined;
   let priority: number | undefined;
 
   const at = title.match(/@([^#!]+?)(?=\s+[#!]|$)/);
   if (at?.[1]) {
-    dueNatural = at[1].trim();
+    const token = at[1].trim();
+    // "@every monday" → recurrence (server schedules the first occurrence)
+    if (/^every\s/i.test(token)) repeat = token;
+    else dueNatural = token;
     title = title.replace(at[0], ' ');
   }
   const hash = title.match(/#(\S+)/);
@@ -28,7 +32,7 @@ function parseQuickAdd(text: string) {
     priority = Number(bang[1]);
     title = title.replace(bang[0], ' ');
   }
-  return { title: title.replace(/\s+/g, ' ').trim(), dueNatural, project, priority };
+  return { title: title.replace(/\s+/g, ' ').trim(), dueNatural, repeat, project, priority };
 }
 
 export default function QuickAdd({ defaultProject }: { defaultProject?: string }) {
@@ -59,6 +63,7 @@ export default function QuickAdd({ defaultProject }: { defaultProject?: string }
           create.mutate({
             title: parsed.title,
             dueNatural: parsed.dueNatural,
+            repeat: parsed.repeat,
             project: parsed.project ?? defaultProject,
             priority: parsed.priority,
           });

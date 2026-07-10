@@ -1,4 +1,4 @@
-import type { Todo } from '@askhumantowork/shared';
+import type { Recurrence, Todo } from '@askhumantowork/shared';
 import type { todos, projects } from '@askhumantowork/db';
 
 type TodoRow = typeof todos.$inferSelect;
@@ -18,6 +18,7 @@ export function serializeTodo(row: TodoRow, project?: Pick<ProjectRow, 'name'> |
     createdByAgent: row.createdByAgent,
     originContext: row.originContext,
     tags: row.tags,
+    recurrence: (row.recurrence as Recurrence | null) ?? null,
     completedAt: row.completedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlarmClock, ArrowLeft, Bot, Check, Moon, RotateCcw, Sun, Trash2 } from 'lucide-react';
+import { AlarmClock, ArrowLeft, Bot, Check, Moon, Pencil, Repeat, RotateCcw, Sun, Trash2 } from 'lucide-react';
 import { api } from '../api';
 import { Button, Chip, inputCls } from '../components/ui';
 
@@ -11,6 +11,8 @@ export default function TodoDetail() {
   const qc = useQueryClient();
   const query = useQuery({ queryKey: ['todo', id], queryFn: () => api.todo(id!), enabled: !!id });
   const [dueText, setDueText] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ title: '', notes: '', repeat: '' });
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['todo', id] });
@@ -48,12 +50,71 @@ export default function TodoDetail() {
       </button>
 
       <div className="rounded-2xl border border-zinc-200/80 bg-white p-7 shadow-card">
-        <div className="flex items-start justify-between gap-4">
-          <h1 className={`text-[21px] font-bold leading-snug tracking-tight ${t.status === 'done' ? 'text-zinc-400 line-through' : ''}`}>
-            {t.title}
-          </h1>
-          <Chip tone={statusTone}>{t.status}</Chip>
-        </div>
+        {editing ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              update.mutate(
+                {
+                  title: draft.title.trim() || t.title,
+                  notes: draft.notes.trim() || null,
+                  repeat: draft.repeat.trim() ? draft.repeat.trim() : t.recurrence ? null : undefined,
+                },
+                { onSuccess: () => setEditing(false) },
+              );
+            }}
+            className="space-y-3"
+          >
+            <input
+              autoFocus
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              className={`${inputCls} text-[17px] font-semibold`}
+            />
+            <textarea
+              value={draft.notes}
+              onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              rows={4}
+              placeholder="Notes…"
+              className={inputCls}
+            />
+            <div className="flex items-center gap-2">
+              <Repeat size={15} className="shrink-0 text-zinc-400" />
+              <input
+                value={draft.repeat}
+                onChange={(e) => setDraft({ ...draft, repeat: e.target.value })}
+                placeholder='Repeat… e.g. "every monday" (leave empty for none)'
+                className={inputCls}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit">Save</Button>
+              <Button type="button" variant="secondary" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+              {update.isError && <span className="self-center text-xs text-red-600">{String((update.error as Error).message)}</span>}
+            </div>
+          </form>
+        ) : (
+          <div className="flex items-start justify-between gap-4">
+            <h1 className={`text-[21px] font-bold leading-snug tracking-tight ${t.status === 'done' ? 'text-zinc-400 line-through' : ''}`}>
+              {t.title}
+            </h1>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={() => {
+                  setDraft({ title: t.title, notes: t.notes ?? '', repeat: t.recurrence?.display ?? '' });
+                  setEditing(true);
+                }}
+                title="Edit"
+                className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+              >
+                <Pencil size={15} />
+              </button>
+              <Chip tone={statusTone}>{t.status}</Chip>
+            </div>
+          </div>
+        )}
 
         {t.source === 'ai' && (
           <div className="mt-5 rounded-xl border border-violet-200/70 bg-gradient-to-r from-violet-50 to-indigo-50/60 p-4">
@@ -71,6 +132,7 @@ export default function TodoDetail() {
             ['Due', t.dueAt ? new Date(t.dueAt).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'],
             ['Project', t.projectName ?? '—'],
             ['Priority', ['None', 'Low', 'Medium', 'High'][t.priority]],
+            ['Repeats', t.recurrence?.display ?? '—'],
             ['Tags', t.tags.length ? t.tags.join(', ') : '—'],
           ].map(([k, v]) => (
             <div key={k as string}>
@@ -80,7 +142,7 @@ export default function TodoDetail() {
           ))}
         </dl>
 
-        {t.notes && (
+        {!editing && t.notes && (
           <div className="mt-5 whitespace-pre-wrap rounded-xl bg-zinc-50 p-4 text-[13.5px] leading-relaxed text-zinc-600">
             {t.notes}
           </div>

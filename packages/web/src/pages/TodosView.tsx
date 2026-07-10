@@ -1,11 +1,22 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
-import { Bot, Flame, Inbox, PartyPopper } from 'lucide-react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { Bot, Flame, Inbox, PartyPopper, Search, X } from 'lucide-react';
 import type { Todo } from '@askhumantowork/shared';
 import { api } from '../api';
 import QuickAdd from '../components/QuickAdd';
 import TodoItem from '../components/TodoItem';
-import { EmptyState, PageHeader } from '../components/ui';
+import { Chip, EmptyState, PageHeader, inputCls } from '../components/ui';
+
+/** Debounce a value. */
+function useDebounced<T>(value: T, ms: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return debounced;
+}
 
 type View = 'today' | 'upcoming' | 'overdue' | 'ai' | 'all' | 'project';
 
@@ -20,13 +31,21 @@ const titles: Record<View, string> = {
 
 export default function TodosView({ view }: { view: View }) {
   const { name } = useParams();
+  const [params, setParams] = useSearchParams();
+  const tag = params.get('tag') ?? '';
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounced(search, 250);
+
   const agenda = useQuery({ queryKey: ['agenda'], queryFn: api.agenda });
   const listQuery = useQuery({
-    queryKey: ['todos', view, name],
+    queryKey: ['todos', view, name, debouncedSearch, tag],
     queryFn: () => {
-      if (view === 'ai') return api.todos({ source: 'ai', limit: '100' });
-      if (view === 'all') return api.todos({ limit: '200' });
-      if (view === 'project') return api.todos({ project: name ?? '', limit: '200' });
+      const extra: Record<string, string> = {};
+      if (debouncedSearch.trim()) extra.search = debouncedSearch.trim();
+      if (tag) extra.tags = tag;
+      if (view === 'ai') return api.todos({ source: 'ai', limit: '100', ...extra });
+      if (view === 'all') return api.todos({ limit: '200', ...extra });
+      if (view === 'project') return api.todos({ project: name ?? '', limit: '200', ...extra });
       return Promise.resolve({ todos: [] });
     },
     enabled: view === 'ai' || view === 'all' || view === 'project',
@@ -73,6 +92,31 @@ export default function TodosView({ view }: { view: View }) {
       />
 
       {view !== 'ai' && <QuickAdd defaultProject={view === 'project' ? name : undefined} />}
+
+      {(view === 'all' || view === 'ai' || view === 'project') && (
+        <div className="mb-4 flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search titles and notes…"
+              className={`${inputCls} pl-9`}
+            />
+          </div>
+          {tag && (
+            <button
+              onClick={() => setParams({}, { replace: true })}
+              className="shrink-0"
+              title="Clear tag filter"
+            >
+              <Chip tone="violet">
+                #{tag} <X size={11} strokeWidth={3} />
+              </Chip>
+            </button>
+          )}
+        </div>
+      )}
 
       {view === 'today' && (agenda.data?.overdue.length ?? 0) > 0 && (
         <a

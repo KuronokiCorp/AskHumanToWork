@@ -31,6 +31,15 @@ export const todoSchema = z.object({
   createdByAgent: z.string().nullable(),
   originContext: z.string().nullable(),
   tags: z.array(z.string()),
+  /** RRULE-lite; present on recurring todos. Completing one spawns the next occurrence. */
+  recurrence: z
+    .object({
+      freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+      interval: z.number().int().min(1),
+      byWeekday: z.array(z.number().int().min(0).max(6)).optional(),
+      display: z.string(),
+    })
+    .nullable(),
   completedAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -72,6 +81,8 @@ export const createTodoInputSchema = z.object({
   reminders: z.array(z.string()).max(10).optional(),
   /** Why this todo exists — REQUIRED provenance for AI-created todos. */
   originContext: z.string().max(500).optional(),
+  /** Natural-language recurrence, e.g. "every monday", "every 2 weeks". Requires a due date. */
+  repeat: z.string().max(80).optional(),
   /** Override which connected providers to mirror to (provider ids). Omit = user's routing rules. */
   syncTo: z.array(z.enum(PROVIDERS)).optional(),
 });
@@ -86,6 +97,8 @@ export const updateTodoInputSchema = z.object({
   priority: z.number().int().min(0).max(3).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   status: z.enum(TODO_STATUSES).optional(),
+  /** Natural-language recurrence; null clears it. */
+  repeat: z.string().max(80).nullable().optional(),
 });
 export type UpdateTodoInput = z.infer<typeof updateTodoInputSchema>;
 

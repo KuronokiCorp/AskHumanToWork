@@ -72,6 +72,8 @@ export const todos = pgTable(
     createdByAgent: text('created_by_agent'),
     originContext: text('origin_context'),
     tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
+    // RRULE-lite JSON ({freq, interval, byWeekday?, display}); completing spawns next occurrence
+    recurrence: jsonb('recurrence'),
     // sha256(title|dueAt|projectId) for idempotent agent retries
     dedupHash: text('dedup_hash'),
     completedAt: timestamp('completed_at', { withTimezone: true }),

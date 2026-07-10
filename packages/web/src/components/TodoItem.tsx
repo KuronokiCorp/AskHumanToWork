@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Bot, Check, Clock, Flag, Hash } from 'lucide-react';
+import { Bot, Check, Clock, Flag, Hash, Repeat } from 'lucide-react';
 import type { Todo } from '@askhumantowork/shared';
 import { api } from '../api';
 import { Chip } from './ui';
@@ -72,6 +72,12 @@ export default function TodoItem({ todo }: { todo: Todo }) {
               {due.text}
             </Chip>
           )}
+          {todo.recurrence && (
+            <Chip tone="emerald" title={`Repeats ${todo.recurrence.display}`}>
+              <Repeat size={11} strokeWidth={2.5} />
+              {todo.recurrence.display}
+            </Chip>
+          )}
           {todo.projectName && (
             <Chip>
               <Hash size={11} strokeWidth={2.5} />
@@ -79,7 +85,9 @@ export default function TodoItem({ todo }: { todo: Todo }) {
             </Chip>
           )}
           {todo.tags.map((tag) => (
-            <Chip key={tag}>{tag}</Chip>
+            <Link key={tag} to={`/all?tag=${encodeURIComponent(tag)}`}>
+              <Chip>{tag}</Chip>
+            </Link>
           ))}
           {todo.source === 'ai' && (
             <Chip tone="violet" title={todo.originContext ?? undefined}>

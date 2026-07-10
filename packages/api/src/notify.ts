@@ -19,6 +19,8 @@ export interface NotifyPayload {
   title: string;
   body: string;
   url?: string;
+  /** Pre-signed one-click action URLs (complete / snooze). */
+  actions?: { complete: string; snooze1h: string; snooze1d: string };
 }
 
 interface QuietHours {
@@ -42,12 +44,26 @@ export function inQuietHours(prefs: unknown, timezone: string, at = new Date()):
 }
 
 export async function sendEmail(to: string, payload: NotifyPayload): Promise<void> {
+  const btn = (href: string, label: string, primary = false) =>
+    `<a href="${href}" style="display:inline-block;margin-right:8px;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;${
+      primary
+        ? 'background:#7c3aed;color:#fff'
+        : 'background:#f4f4f5;color:#3f3f46;border:1px solid #e4e4e7'
+    }">${label}</a>`;
+  const actionsHtml = payload.actions
+    ? `<p style="margin-top:16px">${btn(payload.actions.complete, '✓ Mark done', true)}${btn(payload.actions.snooze1h, '💤 Snooze 1h')}${btn(payload.actions.snooze1d, '💤 Tomorrow')}</p>`
+    : '';
+  const actionsText = payload.actions
+    ? `\n\nMark done: ${payload.actions.complete}\nSnooze 1h: ${payload.actions.snooze1h}`
+    : '';
   await transport.sendMail({
     from: env.smtp.from,
     to,
     subject: payload.title,
-    text: payload.body + (payload.url ? `\n\n${payload.url}` : ''),
-    html: `<p>${payload.body}</p>${payload.url ? `<p><a href="${payload.url}">Open todo</a></p>` : ''}`,
+    text: payload.body + (payload.url ? `\n\n${payload.url}` : '') + actionsText,
+    html: `<div style="font-family:system-ui,sans-serif;max-width:480px"><p style="font-size:14px;color:#27272a">${payload.body}</p>${
+      payload.url ? `<p><a href="${payload.url}" style="color:#7c3aed;font-size:13px">Open in AskHumanToWork →</a></p>` : ''
+    }${actionsHtml}</div>`,
   });
 }
 

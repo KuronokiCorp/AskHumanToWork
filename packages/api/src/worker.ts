@@ -11,6 +11,7 @@ import {
   ReminderService,
   runInboundPollers,
   runSyncJob,
+  signAction,
 } from '@askhumantowork/core';
 import { env } from './env.js';
 import { getUserForNotify, inQuietHours, sendEmail, sendWebPush } from './notify.js';
@@ -55,10 +56,20 @@ const reminderWorker = new Worker(
       todo.source === 'ai' && todo.originContext
         ? `\n(Added by ${todo.createdByAgent ?? 'an AI agent'}: ${todo.originContext})`
         : '';
+    // One-click action links, valid 14 days, HMAC-signed (work without a session).
+    const exp = Math.floor(Date.now() / 1000) + 14 * 24 * 3600;
+    const actionUrl = (action: string) =>
+      `${env.apiBaseUrl}/api/todos/${todo.id}/action?action=${action}&exp=${exp}&sig=${signAction(todo.id, action, exp)}`;
+
     const payload = {
       title: overdue ? `Overdue: ${todo.title}` : `Reminder: ${todo.title}`,
       body: `${todo.title} ${dueText}${provenance}`.trim(),
       url: `${env.webBaseUrl}/t/${todo.id}`,
+      actions: {
+        complete: actionUrl('complete'),
+        snooze1h: actionUrl('snooze1h'),
+        snooze1d: actionUrl('snooze1d'),
+      },
     };
 
     if (reminder.channel === 'email') await sendEmail(user.email, payload);

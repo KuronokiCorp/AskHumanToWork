@@ -37,3 +37,27 @@ export function generateToken(prefix = 'tfa'): string {
 export function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex');
 }
+
+// ---- Signed action tokens (one-click complete/snooze from emails & push) ----
+
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+function actionKey(): Buffer {
+  // derive a distinct key from ENCRYPTION_KEY so action links can't decrypt anything
+  return createHash('sha256').update(key()).update('action-links-v1').digest();
+}
+
+/** Sign `${todoId}|${action}` valid until `exp` (epoch seconds). */
+export function signAction(todoId: string, action: string, exp: number): string {
+  return createHmac('sha256', actionKey())
+    .update(`${todoId}|${action}|${exp}`)
+    .digest('base64url');
+}
+
+export function verifyAction(todoId: string, action: string, exp: number, sig: string): boolean {
+  if (!Number.isFinite(exp) || exp * 1000 < Date.now()) return false;
+  const expected = signAction(todoId, action, exp);
+  const a = Buffer.from(expected);
+  const b = Buffer.from(sig);
+  return a.length === b.length && timingSafeEqual(a, b);
+}

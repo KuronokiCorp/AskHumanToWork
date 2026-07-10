@@ -10,6 +10,43 @@ class TodoDetailScreen extends ConsumerWidget {
 
   final String id;
 
+  Future<void> _showEditDialog(BuildContext context, WidgetRef ref, Todo t) async {
+    final title = TextEditingController(text: t.title);
+    final notes = TextEditingController(text: t.notes ?? '');
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit todo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: title,
+              decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notes,
+              maxLines: 4,
+              decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    if (saved == true && title.text.trim().isNotEmpty) {
+      await ref.read(apiProvider).updateTodo(t.id, {
+        'title': title.text.trim(),
+        'notes': notes.text.trim().isEmpty ? null : notes.text.trim(),
+      });
+      invalidateTodoData(ref);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final api = ref.read(apiProvider);
@@ -28,7 +65,20 @@ class TodoDetailScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(t.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(t.title,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    tooltip: 'Edit',
+                    onPressed: () => _showEditDialog(context, ref, t),
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
               if (t.isAi)
                 Card(

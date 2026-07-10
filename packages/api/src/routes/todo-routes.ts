@@ -14,7 +14,8 @@ import {
   updateTodoInputSchema,
 } from '@askhumantowork/shared';
 import { eq } from 'drizzle-orm';
-import { users } from '@askhumantowork/db';
+import { todos, users } from '@askhumantowork/db';
+import { verifyAction } from '@askhumantowork/core';
 import { requireAuth, requireScope } from '../auth.js';
 
 export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
@@ -104,5 +105,39 @@ export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.get('/api/reminders/pending', { preHandler: [auth, requireScope('todos:read')] }, async (req) => {
     return { reminders: await reminderSvc.pendingForUser(req.auth!.userId) };
+  });
+
+  /**
+   * One-click actions from reminder emails / push notification buttons.
+   * No session — authenticated by an HMAC signature scoped to (todo, action, expiry).
+   */
+  app.get('/api/todos/:id/action', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { action, exp, sig } = req.query as { action?: string; exp?: string; sig?: string };
+    if (!action || !exp || !sig || !verifyAction(id, action, Number(exp), sig)) {
+      return reply.code(403).type('text/html').send('<p>Link expired or invalid.</p>');
+    }
+    const row = await ctx.db.query.todos.findFirst({ where: eq(todos.id, id) });
+    if (!row) return reply.code(404).type('text/html').send('<p>Todo not found.</p>');
+
+    const user = await ctx.db.query.users.findFirst({ where: eq(users.id, row.ownerId) });
+    let message = '';
+    if (action === 'complete') {
+      if (row.status !== 'done') await todoSvc.complete(row.ownerId, id);
+      message = `✓ Completed: ${row.title}`;
+    } else if (action === 'snooze1h' || action === 'snooze1d') {
+      const until = new Date(Date.now() + (action === 'snooze1h' ? 3_600_000 : 24 * 3_600_000));
+      await reminderSvc.snooze(id, until, user?.notificationPrefs);
+      message = `💤 Snoozed until ${until.toLocaleString('en-US', { timeZone: user?.timezone })}: ${row.title}`;
+    } else {
+      return reply.code(400).type('text/html').send('<p>Unknown action.</p>');
+    }
+    return reply.type('text/html').send(
+      `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+       <body style="font-family:system-ui;display:grid;place-items:center;height:90vh;background:#fafafa">
+       <div style="text-align:center"><div style="font-size:40px">✅</div>
+       <p style="font-size:15px;color:#3f3f46">${message}</p>
+       <p style="font-size:12px;color:#a1a1aa">You can close this tab.</p></div>`,
+    );
   });
 }

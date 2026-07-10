@@ -23,6 +23,7 @@ function compact(t: Todo) {
     tags: t.tags.length ? t.tags : undefined,
     source: t.source === 'ai' ? `ai (${t.createdByAgent ?? 'unknown'})` : 'human',
     originContext: t.originContext ?? undefined,
+    repeats: t.recurrence?.display,
   };
 }
 
@@ -62,6 +63,8 @@ export function createTodoMcpServer(client: TodoClient): McpServer {
         .describe('Explicit reminder times (natural language or ISO). Omit for sensible defaults derived from the due date (1 day before, 1 hour before, at due, then daily overdue nudges).'),
       origin_context: z.string().max(500).optional()
         .describe('One sentence on WHY this todo exists, e.g. "You asked me to remind you after we found the flaky test." Strongly recommended.'),
+      repeat: z.string().max(80).optional()
+        .describe('Recurrence in natural language: "every day", "every monday", "every mon and thu", "every 2 weeks", "monthly". If no due date is given, the first occurrence is scheduled automatically. Completing an occurrence schedules the next one.'),
       sync_to: z.array(z.enum(['ms-todo', 'google-tasks'])).optional()
         .describe('Override which connected external apps mirror this todo. Omit to use the user\'s routing rules. Check list_integrations for what is connected.'),
     },
@@ -77,6 +80,7 @@ export function createTodoMcpServer(client: TodoClient): McpServer {
           tags: args.tags,
           reminders: args.reminders,
           originContext: args.origin_context,
+          repeat: args.repeat,
           syncTo: args.sync_to,
         });
         return ok({
@@ -141,6 +145,8 @@ export function createTodoMcpServer(client: TodoClient): McpServer {
       priority: z.number().int().min(0).max(3).optional(),
       tags: z.array(z.string()).optional(),
       status: z.enum(['open', 'doing', 'done', 'cancelled']).optional(),
+      repeat: z.string().max(80).optional().describe('Set recurrence, e.g. "every friday"'),
+      clear_repeat: z.boolean().optional().describe('Stop this todo from repeating'),
     },
     async (args) =>
       run(async () => {
@@ -153,6 +159,7 @@ export function createTodoMcpServer(client: TodoClient): McpServer {
           priority: args.priority as 0 | 1 | 2 | 3 | undefined,
           tags: args.tags,
           status: args.status,
+          repeat: args.clear_repeat ? null : args.repeat,
         });
         return ok({ todo: compact(todo) });
       }),

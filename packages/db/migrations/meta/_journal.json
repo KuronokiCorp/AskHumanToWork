@@ -15,6 +15,13 @@
       "when": 1783663193152,
       "tag": "0001_overrated_cerebro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783696526307,
+      "tag": "0002_chemical_wendell_rand",
+      "breakpoints": true
     }
   ]
 }
