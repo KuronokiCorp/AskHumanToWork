@@ -12,7 +12,7 @@ export default function TodoDetail() {
   const query = useQuery({ queryKey: ['todo', id], queryFn: () => api.todo(id!), enabled: !!id });
   const [dueText, setDueText] = useState('');
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ title: '', notes: '', repeat: '' });
+  const [draft, setDraft] = useState({ title: '', notes: '', repeat: '', priority: 0, project: '', tags: '' });
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['todo', id] });
@@ -59,6 +59,9 @@ export default function TodoDetail() {
                   title: draft.title.trim() || t.title,
                   notes: draft.notes.trim() || null,
                   repeat: draft.repeat.trim() ? draft.repeat.trim() : t.recurrence ? null : undefined,
+                  priority: draft.priority,
+                  project: draft.project.trim() || null,
+                  tags: draft.tags.split(',').map((s) => s.trim()).filter(Boolean),
                 },
                 { onSuccess: () => setEditing(false) },
               );
@@ -87,6 +90,29 @@ export default function TodoDetail() {
                 className={inputCls}
               />
             </div>
+            <div className="grid grid-cols-3 gap-2">
+              <select
+                value={draft.priority}
+                onChange={(e) => setDraft({ ...draft, priority: Number(e.target.value) })}
+                className={inputCls}
+              >
+                {['No priority', '! Low', '!! Medium', '!!! High'].map((label, i) => (
+                  <option key={i} value={i}>{label}</option>
+                ))}
+              </select>
+              <input
+                value={draft.project}
+                onChange={(e) => setDraft({ ...draft, project: e.target.value })}
+                placeholder="Project"
+                className={inputCls}
+              />
+              <input
+                value={draft.tags}
+                onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
+                placeholder="Tags (comma-separated)"
+                className={inputCls}
+              />
+            </div>
             <div className="flex gap-2">
               <Button type="submit">Save</Button>
               <Button type="button" variant="secondary" onClick={() => setEditing(false)}>
@@ -103,7 +129,14 @@ export default function TodoDetail() {
             <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={() => {
-                  setDraft({ title: t.title, notes: t.notes ?? '', repeat: t.recurrence?.display ?? '' });
+                  setDraft({
+                    title: t.title,
+                    notes: t.notes ?? '',
+                    repeat: t.recurrence?.display ?? '',
+                    priority: t.priority,
+                    project: t.projectName ?? '',
+                    tags: t.tags.join(', '),
+                  });
                   setEditing(true);
                 }}
                 title="Edit"

@@ -60,6 +60,16 @@ class TodoTile extends ConsumerWidget {
                 if (todo.priority > 0)
                   Text('!' * todo.priority,
                       style: const TextStyle(fontSize: 12, color: Colors.orange)),
+                if (todo.recurrenceDisplay != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text('🔁 ${todo.recurrenceDisplay}',
+                        style: TextStyle(fontSize: 11, color: Colors.green.shade700)),
+                  ),
                 if (todo.isAi)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),

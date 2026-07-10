@@ -21,8 +21,8 @@ class AskHumanToWorkApp extends ConsumerWidget {
     final router = GoRouter(
       initialLocation: '/',
       routes: [
-        GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-        GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+        GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
+        GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
         GoRoute(
             path: '/t/:id',
             builder: (_, state) =>
