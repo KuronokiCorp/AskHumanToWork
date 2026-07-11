@@ -16,6 +16,7 @@ import {
 import { env } from './env.js';
 import { getUserForNotify, inQuietHours, sendEmail, sendWebPush } from './notify.js';
 import { cleanupExpiredSessions } from './session-store.js';
+import { composeDigest, digestPrefsOf, isLocalHour } from './digest.js';
 
 const db = createDb();
 const ctx = await createContext(db);
@@ -96,6 +97,27 @@ await ctx.boss.work(QUEUES.poll, async () => {
   await runInboundPollers(ctx);
 });
 await ctx.boss.schedule(QUEUES.poll, '*/2 * * * *'); // every 2 minutes
+
+// ---------- Morning digest ----------
+
+await ctx.boss.work(QUEUES.digest, async () => {
+  const all = await ctx.db.query.users.findMany();
+  for (const user of all) {
+    const prefs = digestPrefsOf(user);
+    if (!prefs.enabled) continue;
+    if (!isLocalHour(user.timezone, prefs.hour ?? 8)) continue;
+    try {
+      const digest = await composeDigest(ctx, user);
+      if (!digest) continue; // empty agenda — no email
+      const payload = { title: digest.subject, body: digest.body, url: `${env.webBaseUrl}/today` };
+      await sendEmail(user.email, payload);
+      await sendWebPush(ctx.db, user.id, payload);
+    } catch (err) {
+      console.error(`[digest] failed for ${user.email}:`, err);
+    }
+  }
+});
+await ctx.boss.schedule(QUEUES.digest, '0 * * * *'); // hourly; per-user local hour matched in handler
 
 // ---------- Housekeeping ----------
 

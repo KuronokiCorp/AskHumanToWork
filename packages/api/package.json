@@ -13,6 +13,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
     "@askhumantowork/core": "workspace:*",
     "@askhumantowork/db": "workspace:*",
     "@askhumantowork/shared": "workspace:*",

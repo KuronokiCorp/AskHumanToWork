@@ -77,6 +77,47 @@ export default function SettingsNotifications({ me }: { me: Me }) {
         </div>
       </SectionCard>
 
+      <SectionCard
+        title="Morning digest"
+        description="One email each morning sizing up your day — overdue, today, and the week ahead. Written by Claude when the server has an Anthropic API key; otherwise a clean summary."
+      >
+        <div className="flex items-center gap-4">
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded accent-violet-600"
+              checked={prefs.digest?.enabled === true}
+              onChange={(e) =>
+                update.mutate({
+                  ...prefs,
+                  digest: { ...prefs.digest, enabled: e.target.checked, hour: prefs.digest?.hour ?? 8 },
+                })
+              }
+            />
+            Enabled
+          </label>
+          {prefs.digest?.enabled && (
+            <label className="flex items-center gap-2 text-sm text-zinc-600">
+              at
+              <select
+                value={prefs.digest?.hour ?? 8}
+                onChange={(e) =>
+                  update.mutate({ ...prefs, digest: { ...prefs.digest, enabled: true, hour: Number(e.target.value) } })
+                }
+                className={timeCls}
+              >
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>
+                    {String(h).padStart(2, '0')}:00
+                  </option>
+                ))}
+              </select>
+              ({me.timezone})
+            </label>
+          )}
+        </div>
+      </SectionCard>
+
       <SectionCard title={`Quiet hours (${me.timezone})`} description="Reminders due during quiet hours are delivered right after the window ends.">
         <div className="flex items-center gap-4">
           <label className="inline-flex items-center gap-2 text-sm">

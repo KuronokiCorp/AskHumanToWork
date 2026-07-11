@@ -11,6 +11,8 @@ export const QUEUES = {
   poll: 'poll',
   /** Cron: housekeeping (expired sessions). */
   cleanup: 'cleanup',
+  /** Cron (hourly): morning digest for users whose local hour matches. */
+  digest: 'digest',
 } as const;
 
 export interface AppContext {

@@ -27,7 +27,11 @@ export interface Me {
   id: string;
   email: string;
   timezone: string;
-  notificationPrefs: { channels?: Record<string, boolean>; quietHours?: { start: string; end: string } | null };
+  notificationPrefs: {
+    channels?: Record<string, boolean>;
+    quietHours?: { start: string; end: string } | null;
+    digest?: { enabled?: boolean; hour?: number };
+  };
   isAdmin: boolean;
   plan: 'free' | 'pro';
 }
