@@ -135,14 +135,17 @@ Open the Mailpit UI at http://localhost:8025 — the reminder email arrives, inc
 provenance if an agent created the todo. (Enable browser push in Settings → Notifications for
 native notifications; quiet hours are respected.)
 
-## 7. Mobile app (Flutter)
+## 7. Mobile app — HeyHuman (Flutter)
+
+The mobile app ships as **HeyHuman** ("Your AI remembers. You get it done.") — every notification
+reads as your AI addressing you.
 
 ```bash
 cd mobile && flutter run          # iOS simulator or Android emulator
 ```
 
-Sign in with the demo account. Same Today/Upcoming/Projects/AI Inbox views; server reminders are
-mirrored as local notifications; completing a todo on the phone syncs back instantly.
+Sign in with the demo account. Same Today/Upcoming/Projects/AI Inbox views plus search and settings;
+server reminders are mirrored as local notifications; completing a todo on the phone syncs back instantly.
 
 ## 8. Mirror to Microsoft To Do / Google Tasks (Pro)
 

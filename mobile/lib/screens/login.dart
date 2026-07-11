@@ -48,11 +48,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('✅ AskHumanToWork',
+                const Text('👋 HeyHuman',
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text('The todo hub for heavy AI users.',
+                Text('Your AI remembers. You get it done.',
                     style: TextStyle(color: Colors.grey.shade600)),
+                const SizedBox(height: 2),
+                Text('by AskHumanToWork',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _email,
