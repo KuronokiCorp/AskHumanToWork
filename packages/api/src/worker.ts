@@ -105,3 +105,15 @@ await ctx.boss.work(QUEUES.cleanup, async () => {
 await ctx.boss.schedule(QUEUES.cleanup, '0 4 * * *'); // daily 04:00
 
 console.log('Workers running (pg-boss): reminders + sync (poll every 2m) + housekeeping');
+
+// Cloud Run requires services to listen on $PORT — expose a bare health endpoint
+// when deployed there (not set in local dev, where no listener is needed).
+if (process.env.PORT) {
+  const { createServer } = await import('node:http');
+  createServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end('{"ok":true,"role":"worker"}');
+  }).listen(Number(process.env.PORT), () =>
+    console.log(`worker health listener on :${process.env.PORT}`),
+  );
+}
