@@ -22,20 +22,29 @@ const features = [
 ];
 
 export default function Login({ onDone }: { onDone: () => void }) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
-      if (mode === 'login') await api.login(email, password);
-      else await api.signup(email, password, Intl.DateTimeFormat().resolvedOptions().timeZone);
-      onDone();
+      if (mode === 'forgot') {
+        await api.forgotPassword(email);
+        setNotice('If that address has an account, a reset link is on its way. Check your inbox.');
+      } else if (mode === 'login') {
+        await api.login(email, password);
+        onDone();
+      } else {
+        await api.signup(email, password, Intl.DateTimeFormat().resolvedOptions().timeZone);
+        onDone();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed');
     } finally {
@@ -97,10 +106,14 @@ export default function Login({ onDone }: { onDone: () => void }) {
             <Logo size={34} />
           </div>
           <h2 className="text-xl font-bold tracking-tight">
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+            {mode === 'login' ? 'Welcome back' : mode === 'signup' ? 'Create your account' : 'Reset your password'}
           </h2>
           <p className="mb-6 mt-1 text-sm text-zinc-500">
-            {mode === 'login' ? 'Sign in to see what your AI has planned for you.' : 'Free forever for capture + reminders.'}
+            {mode === 'login'
+              ? 'Sign in to see what your AI has planned for you.'
+              : mode === 'signup'
+                ? 'Free forever for capture + reminders.'
+                : "Enter your email and we'll send a reset link."}
           </p>
 
           <label className="mb-1.5 block text-[13px] font-medium text-zinc-700">Email</label>
@@ -113,23 +126,32 @@ export default function Login({ onDone }: { onDone: () => void }) {
             className={`${inputCls} mb-4`}
             placeholder="you@example.com"
           />
-          <label className="mb-1.5 block text-[13px] font-medium text-zinc-700">Password</label>
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={`${inputCls} mb-5`}
-            placeholder="••••••••"
-          />
+          {mode !== 'forgot' && (
+            <>
+              <label className="mb-1.5 block text-[13px] font-medium text-zinc-700">Password</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`${inputCls} mb-5`}
+                placeholder="••••••••"
+              />
+            </>
+          )}
           {error && (
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
               {error}
             </div>
           )}
+          {notice && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">
+              {notice}
+            </div>
+          )}
           <Button disabled={busy} className="w-full justify-center py-2.5">
-            {busy ? 'One sec…' : mode === 'login' ? 'Sign in' : 'Create account'}
+            {busy ? 'One sec…' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
           </Button>
           <button
             type="button"
@@ -138,6 +160,15 @@ export default function Login({ onDone }: { onDone: () => void }) {
           >
             {mode === 'login' ? 'No account? Sign up free' : 'Have an account? Sign in'}
           </button>
+          {mode === 'login' && (
+            <button
+              type="button"
+              onClick={() => setMode('forgot')}
+              className="mt-2 w-full text-center text-[12px] text-zinc-400 hover:text-zinc-600"
+            >
+              Forgot password?
+            </button>
+          )}
         </form>
       </div>
     </div>

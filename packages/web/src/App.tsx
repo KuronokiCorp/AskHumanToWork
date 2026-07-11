@@ -15,6 +15,7 @@ import {
 import { api, ApiError } from './api';
 import { Logo } from './components/ui';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import TodosView from './pages/TodosView';
 import TodoDetail from './pages/TodoDetail';
 import SettingsTokens from './pages/SettingsTokens';
@@ -66,6 +67,8 @@ export default function App() {
       </div>
     );
   }
+  // Reset links arrive unauthenticated — handle before the login gate.
+  if (location.pathname === '/reset-password') return <ResetPassword />;
   if (me.isError) return <Login onDone={() => me.refetch()} />;
 
   return (

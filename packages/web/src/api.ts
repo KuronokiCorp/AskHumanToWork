@@ -69,6 +69,9 @@ export const api = {
   signup: (email: string, password: string, timezone: string) =>
     call('POST', '/api/auth/signup', { email, password, timezone }),
   logout: () => call('POST', '/api/auth/logout'),
+  forgotPassword: (email: string) => call('POST', '/api/auth/forgot-password', { email }),
+  resetPassword: (uid: string, exp: number, sig: string, password: string) =>
+    call('POST', '/api/auth/reset-password', { uid, exp, sig, password }),
   updateMe: (patch: Partial<Pick<Me, 'timezone' | 'notificationPrefs'>>) =>
     call('PATCH', '/api/auth/me', patch),
 

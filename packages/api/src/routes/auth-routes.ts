@@ -1,10 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import bcrypt from 'bcryptjs';
-import { eq } from 'drizzle-orm';
-import { agentTokens, users } from '@askhumantowork/db';
-import { generateToken, hashToken, type AppContext } from '@askhumantowork/core';
+import { eq, sql } from 'drizzle-orm';
+import { agentTokens, users, webSessions } from '@askhumantowork/db';
+import { generateToken, hashToken, signAction, verifyAction, type AppContext } from '@askhumantowork/core';
 import { loginInputSchema, signupInputSchema } from '@askhumantowork/shared';
 import { requireAuth } from '../auth.js';
+import { sendEmail } from '../notify.js';
+import { env } from '../env.js';
 
 export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
   // Credential endpoints get strict limits (brute-force protection).
@@ -50,6 +52,49 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.post('/api/auth/logout', async (req) => {
     await req.session.destroy();
+    return { ok: true };
+  });
+
+  // --- Password reset (HMAC-signed link, 1h expiry, no user enumeration) ---
+
+  app.post('/api/auth/forgot-password', strictLimit, async (req) => {
+    const { email } = req.body as { email: string };
+    const user = await ctx.db.query.users.findFirst({ where: eq(users.email, email ?? '') });
+    if (user) {
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+      const sig = signAction(user.id, 'pwreset', exp);
+      const link = `${env.webBaseUrl}/reset-password?uid=${user.id}&exp=${exp}&sig=${sig}`;
+      await sendEmail(user.email, {
+        title: 'Reset your AskHumanToWork password',
+        body: `Someone (hopefully you) requested a password reset. The link below is valid for 1 hour. If you didn't request this, ignore this email.`,
+        url: link,
+      }).catch((err) => app.log.error({ err }, 'reset email failed'));
+    }
+    // Always the same response — never reveal whether the email exists.
+    return { ok: true };
+  });
+
+  app.post('/api/auth/reset-password', strictLimit, async (req, reply) => {
+    const { uid, exp, sig, password } = req.body as {
+      uid: string;
+      exp: number;
+      sig: string;
+      password: string;
+    };
+    if (!uid || !sig || !verifyAction(uid, 'pwreset', Number(exp), sig)) {
+      return reply.code(403).send({ error: 'Reset link is invalid or expired.' });
+    }
+    if (!password || password.length < 8) {
+      return reply.code(400).send({ error: 'Password must be at least 8 characters.' });
+    }
+    const [user] = await ctx.db
+      .update(users)
+      .set({ passwordHash: await bcrypt.hash(password, 10) })
+      .where(eq(users.id, uid))
+      .returning();
+    if (!user) return reply.code(404).send({ error: 'user not found' });
+    // Invalidate every existing web session for this account.
+    await ctx.db.delete(webSessions).where(sql`data->>'userId' = ${uid}`);
     return { ok: true };
   });
 
