@@ -9,7 +9,6 @@ services:
     command: sh -c "node packages/db/dist/migrate.js && node packages/api/dist/index.js"
     environment:
       DATABASE_URL: postgres://askhumantowork:askhumantowork@postgres:5432/askhumantowork
-      REDIS_URL: redis://redis:6379
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SERVE_WEB: "true"
@@ -25,8 +24,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
 
   worker:
     build: .
@@ -34,7 +31,6 @@ services:
     command: node packages/api/dist/worker.js
     environment:
       DATABASE_URL: postgres://askhumantowork:askhumantowork@postgres:5432/askhumantowork
-      REDIS_URL: redis://redis:6379
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
@@ -46,8 +42,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
   postgres:
     image: postgres:16
     environment:
@@ -64,13 +58,6 @@ services:
       timeout: 3s
       retries: 10
 
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
-    volumes:
-      - redisdata:/data
-
   mailpit:
     image: axllent/mailpit
     ports:
@@ -79,4 +66,3 @@ services:
 
 volumes:
   pgdata:
-  redisdata:

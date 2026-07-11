@@ -5,7 +5,7 @@ import { buildServer } from './server.js';
 import { env } from './env.js';
 
 const db = createDb();
-const ctx = createContext(db);
+const ctx = await createContext(db);
 const app = await buildServer(ctx);
 
 await app.listen({ port: env.port, host: '0.0.0.0' });

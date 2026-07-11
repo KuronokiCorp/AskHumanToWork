@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { integrations, syncJobs, todos } from '@askhumantowork/db';
 import type { Provider } from '@askhumantowork/shared';
-import type { AppContext } from './../context.js';
+import { QUEUES, type AppContext } from './../context.js';
 import { canUseIntegrations } from '../entitlements.js';
 
 type TodoRow = typeof todos.$inferSelect;
@@ -55,7 +55,7 @@ export async function enqueueTodoSync(
       .values({ integrationId: integ.id, todoId: todo.id, direction: 'outbound', action })
       .returning();
     if (job) {
-      await ctx.queues.sync.add('outbound', { syncJobId: job.id }, { jobId: job.id });
+      await ctx.boss.send(QUEUES.sync, { syncJobId: job.id });
       results.push({ provider: integ.provider, status: 'queued' });
     }
   }

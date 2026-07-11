@@ -10,6 +10,7 @@ import {
   getProviderCredentials,
   getUserPlan,
   setProviderCredentials,
+  QUEUES,
   type AppContext,
 } from '@askhumantowork/core';
 import { PROVIDERS, type Provider } from '@askhumantowork/shared';
@@ -20,16 +21,14 @@ function isProvider(p: string): p is Provider {
   return (PROVIDERS as readonly string[]).includes(p);
 }
 
+declare module 'fastify' {
+  interface Session {
+    oauthState?: { state: string; provider: string; userId: string; expires: number };
+  }
+}
+
 export function registerIntegrationRoutes(app: FastifyInstance, ctx: AppContext) {
   const auth = requireAuth(ctx);
-  // OAuth state lives in Redis (10-min TTL) so callbacks survive restarts/multiple instances.
-  const stateKey = (state: string) => `oauth-state:${state}`;
-  const putState = (state: string, data: { userId: string; provider: Provider }) =>
-    ctx.redis.set(stateKey(state), JSON.stringify(data), 'EX', 600);
-  const takeState = async (state: string) => {
-    const raw = await ctx.redis.getdel(stateKey(state));
-    return raw ? (JSON.parse(raw) as { userId: string; provider: Provider }) : null;
-  };
 
   app.get(
     '/api/integrations',
@@ -87,7 +86,8 @@ export function registerIntegrationRoutes(app: FastifyInstance, ctx: AppContext)
       });
     }
     const state = randomBytes(16).toString('hex');
-    await putState(state, { userId: req.auth!.userId, provider });
+    // State lives in the user's (Postgres-backed) session — survives restarts.
+    req.session.oauthState = { state, provider, userId: req.auth!.userId, expires: Date.now() + 600_000 };
     const redirectUri = `${env.apiBaseUrl}/api/integrations/${provider}/callback`;
     return reply.redirect(adapters[provider].authorizeUrl(creds.clientId, redirectUri, state));
   });
@@ -98,8 +98,14 @@ export function registerIntegrationRoutes(app: FastifyInstance, ctx: AppContext)
     if (!isProvider(provider) || !code || !state) {
       return reply.code(400).send({ error: 'invalid callback' });
     }
-    const pending = await takeState(state);
-    if (!pending || pending.provider !== provider) {
+    const pending = req.session.oauthState;
+    req.session.oauthState = undefined;
+    if (
+      !pending ||
+      pending.state !== state ||
+      pending.provider !== provider ||
+      pending.expires < Date.now()
+    ) {
       return reply.code(400).send({ error: 'expired or invalid oauth state' });
     }
     const creds = await getProviderCredentials(ctx, provider);
@@ -175,7 +181,7 @@ export function registerIntegrationRoutes(app: FastifyInstance, ctx: AppContext)
         .insert(syncJobs)
         .values({ integrationId: row.id, todoId: todo.id, direction: 'outbound', action: 'update' })
         .returning();
-      if (job) await ctx.queues.sync.add('outbound', { syncJobId: job.id }, { jobId: job.id });
+      if (job) await ctx.boss.send(QUEUES.sync, { syncJobId: job.id });
     }
     return { ok: true, enqueued: open.length };
   });

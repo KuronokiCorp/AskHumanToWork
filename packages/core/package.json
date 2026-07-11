@@ -19,9 +19,8 @@
   "dependencies": {
     "@askhumantowork/db": "workspace:*",
     "@askhumantowork/shared": "workspace:*",
-    "bullmq": "^5.34.3",
     "drizzle-orm": "^0.38.3",
-    "ioredis": "5.10.1"
+    "pg-boss": "^12.26.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

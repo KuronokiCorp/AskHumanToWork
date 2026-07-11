@@ -1,42 +1,51 @@
-import type { Redis } from 'ioredis';
+import { and, eq, gt, lt } from 'drizzle-orm';
+import { webSessions, type Database } from '@askhumantowork/db';
 import type * as Fastify from 'fastify';
 
 type Callback = (err?: unknown) => void;
 type GetCallback = (err: unknown, session?: Fastify.Session | null) => void;
 
 /**
- * Minimal express-session-compatible store on ioredis (connect-redis targets
- * node-redis and sends option objects ioredis can't parse). Sessions survive
- * API restarts and are shared across instances.
+ * Postgres-backed express-session-compatible store. Sessions survive API
+ * restarts and are shared across instances — no Redis required.
+ * Expired rows are cleaned by the worker's daily housekeeping job.
  */
-export class IoredisSessionStore {
+export class PgSessionStore {
   constructor(
-    private redis: Redis,
-    private prefix = 'sess:',
+    private db: Database,
     private ttlSeconds = 30 * 24 * 3600,
   ) {}
 
   set(sessionId: string, session: Fastify.Session, callback: Callback) {
-    const ttl = session.cookie?.maxAge
-      ? Math.ceil(session.cookie.maxAge / 1000)
-      : this.ttlSeconds;
-    this.redis
-      .set(this.prefix + sessionId, JSON.stringify(session), 'EX', ttl)
+    const ttlMs = session.cookie?.maxAge ?? this.ttlSeconds * 1000;
+    const expiresAt = new Date(Date.now() + ttlMs);
+    this.db
+      .insert(webSessions)
+      .values({ sid: sessionId, data: session, expiresAt })
+      .onConflictDoUpdate({ target: webSessions.sid, set: { data: session, expiresAt } })
       .then(() => callback())
       .catch(callback);
   }
 
   get(sessionId: string, callback: GetCallback) {
-    this.redis
-      .get(this.prefix + sessionId)
-      .then((raw) => callback(null, raw ? (JSON.parse(raw) as Fastify.Session) : null))
+    this.db.query.webSessions
+      .findFirst({
+        where: and(eq(webSessions.sid, sessionId), gt(webSessions.expiresAt, new Date())),
+      })
+      .then((row) => callback(null, row ? (row.data as Fastify.Session) : null))
       .catch((err) => callback(err));
   }
 
   destroy(sessionId: string, callback: Callback) {
-    this.redis
-      .del(this.prefix + sessionId)
+    this.db
+      .delete(webSessions)
+      .where(eq(webSessions.sid, sessionId))
       .then(() => callback())
       .catch(callback);
   }
+}
+
+/** Delete expired sessions (worker housekeeping). */
+export async function cleanupExpiredSessions(db: Database): Promise<void> {
+  await db.delete(webSessions).where(lt(webSessions.expiresAt, new Date()));
 }

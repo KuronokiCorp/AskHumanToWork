@@ -4,7 +4,7 @@ import session from '@fastify/session';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
-import { IoredisSessionStore } from './session-store.js';
+import { PgSessionStore } from './session-store.js';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,8 +30,8 @@ export async function buildServer(ctx: AppContext) {
   await app.register(cookie);
   await app.register(session, {
     secret: env.sessionSecret,
-    // Redis-backed: sessions survive API restarts and scale horizontally.
-    store: new IoredisSessionStore(ctx.redis) as never,
+    // Postgres-backed: sessions survive API restarts and scale horizontally.
+    store: new PgSessionStore(ctx.db) as never,
     cookie: {
       secure: env.cookieSecure,
       httpOnly: true,
@@ -41,14 +41,12 @@ export async function buildServer(ctx: AppContext) {
     saveUninitialized: false,
   });
 
-  // Baseline abuse protection; auth endpoints get stricter limits below.
+  // Baseline abuse protection (in-process store; per-instance limits are fine
+  // at this scale). Auth endpoints get stricter limits per-route.
   await app.register(rateLimit, {
     global: true,
     max: 300,
     timeWindow: '1 minute',
-    redis: ctx.redis,
-    nameSpace: 'rl:',
-    allowList: () => false,
   });
 
   app.get('/api/health', { config: { rateLimit: false } }, async () => ({ ok: true }));

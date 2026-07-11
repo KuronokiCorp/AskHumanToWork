@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { reminders, todos } from '@askhumantowork/db';
 import type { ReminderChannel } from '@askhumantowork/shared';
-import type { AppContext } from './context.js';
+import { QUEUES, type AppContext } from './context.js';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -10,8 +10,10 @@ const DAY = 24 * HOUR;
  * Reliable reminder engine. Default ladder for a todo with a due date:
  *   due − 1 day, due − 1 hour, at due — then daily overdue nudges (added by the
  *   worker when an at-due reminder fires and the todo is still open).
- * All reminders are rows in `reminders` plus delayed BullMQ jobs (job id = reminder id),
- * so cancellation is: mark row cancelled + remove queue job.
+ *
+ * Source of truth is the `reminders` table; pg-boss jobs are just delayed
+ * triggers. Cancellation only updates rows — a stale job that still fires is a
+ * no-op because the worker re-checks `status = 'pending'` before sending.
  */
 export class ReminderService {
   constructor(private ctx: AppContext) {}
@@ -22,6 +24,17 @@ export class ReminderService {
     if (channels.email !== false) out.push('email');
     if (channels.web_push !== false) out.push('web_push');
     return out.length ? out : ['email'];
+  }
+
+  private async enqueue(reminderId: string, fireAt: Date): Promise<void> {
+    // keep the job around well past its fire time (far-future reminders)
+    const retentionSeconds = Math.ceil(Math.max(0, fireAt.getTime() - Date.now()) / 1000) + 30 * 24 * 3600;
+    await this.ctx.boss.send(QUEUES.reminder, { reminderId }, {
+      startAfter: fireAt,
+      retryLimit: 3,
+      retryDelay: 60,
+      retentionSeconds,
+    });
   }
 
   /** Recompute the ladder for a todo (idempotent: cancels previous ladder first). */
@@ -51,15 +64,7 @@ export class ReminderService {
       channels.map((channel) => ({ todoId, fireAt, channel, kind })),
     );
     const rows = await this.ctx.db.insert(reminders).values(values).returning();
-    await Promise.all(
-      rows.map((r) =>
-        this.ctx.queues.reminders.add(
-          'fire',
-          { reminderId: r.id },
-          { jobId: r.id, delay: Math.max(0, r.fireAt.getTime() - Date.now()) },
-        ),
-      ),
-    );
+    await Promise.all(rows.map((r) => this.enqueue(r.id, r.fireAt)));
   }
 
   /** Schedule the next daily overdue nudge (called by the worker after an at-due fire). */
@@ -70,32 +75,23 @@ export class ReminderService {
       .insert(reminders)
       .values(channels.map((channel) => ({ todoId, fireAt, channel, kind: 'overdue' })))
       .returning();
-    await Promise.all(
-      rows.map((r) =>
-        this.ctx.queues.reminders.add('fire', { reminderId: r.id }, { jobId: r.id, delay: DAY }),
-      ),
-    );
+    await Promise.all(rows.map((r) => this.enqueue(r.id, r.fireAt)));
   }
 
-  /** Cancel pending reminders for a todo (all kinds unless narrowed). */
+  /** Cancel pending reminders for a todo (all kinds unless narrowed). DB-only. */
   async cancelForTodo(todoId: string, kind?: string): Promise<void> {
     const pending = await this.ctx.db.query.reminders.findMany({
       where: (r, { eq: e, and: a }) =>
         kind
           ? a(e(r.todoId, todoId), e(r.status, 'pending'), e(r.kind, kind))
           : a(e(r.todoId, todoId), e(r.status, 'pending')),
+      columns: { id: true },
     });
     if (!pending.length) return;
     await this.ctx.db
       .update(reminders)
       .set({ status: 'cancelled' })
       .where(inArray(reminders.id, pending.map((r) => r.id)));
-    await Promise.all(
-      pending.map(async (r) => {
-        const job = await this.ctx.queues.reminders.getJob(r.id);
-        await job?.remove().catch(() => {});
-      }),
-    );
   }
 
   /** Snooze: cancel pending and schedule a single reminder at `until`. */
@@ -106,15 +102,7 @@ export class ReminderService {
       .insert(reminders)
       .values(channels.map((channel) => ({ todoId, fireAt: until, channel, kind: 'snooze' })))
       .returning();
-    await Promise.all(
-      rows.map((r) =>
-        this.ctx.queues.reminders.add(
-          'fire',
-          { reminderId: r.id },
-          { jobId: r.id, delay: Math.max(0, until.getTime() - Date.now()) },
-        ),
-      ),
-    );
+    await Promise.all(rows.map((r) => this.enqueue(r.id, r.fireAt)));
   }
 
   /** Pending reminders for a user (mobile app schedules local notifications from this). */

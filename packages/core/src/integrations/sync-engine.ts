@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { integrations, reminders, syncJobs, todoLinks, todos } from '@askhumantowork/db';
-import type { AppContext } from '../context.js';
+import { QUEUES, type AppContext } from '../context.js';
 import { sha256 } from '../crypto.js';
 import { adapters, getConnection } from './registry.js';
 import { canUseIntegrations } from '../entitlements.js';
@@ -118,7 +118,9 @@ export async function runSyncJob(ctx: AppContext, syncJobId: string): Promise<vo
     await ctx.db.update(integrations).set({ lastError: message }).where(eq(integrations.id, integration.id));
     if (!failed) {
       // exponential backoff re-enqueue
-      await ctx.queues.sync.add('outbound', { syncJobId }, { delay: 2 ** attempts * 30_000 });
+      await ctx.boss.send(QUEUES.sync, { syncJobId }, {
+        startAfter: new Date(Date.now() + 2 ** attempts * 30_000),
+      });
     }
     if (failed) throw err;
   }
@@ -146,18 +148,15 @@ async function applyInboundChange(
   }
 
   // The critical case: completed externally → complete here + cancel reminders.
+  // Cancellation is DB-only; the reminder worker no-ops on non-pending rows.
   if (change.completed && todo.status !== 'done') {
     await ctx.db.update(todos)
       .set({ status: 'done', completedAt: new Date(), updatedAt: new Date() })
       .where(eq(todos.id, todo.id));
-    const pending = await ctx.db.query.reminders.findMany({
-      where: (r, { eq: e, and: a }) => a(e(r.todoId, todo.id), e(r.status, 'pending')),
-    });
-    for (const r of pending) {
-      await ctx.db.update(reminders).set({ status: 'cancelled' }).where(eq(reminders.id, r.id));
-      const qjob = await ctx.queues.reminders.getJob(r.id);
-      await qjob?.remove().catch(() => {});
-    }
+    await ctx.db
+      .update(reminders)
+      .set({ status: 'cancelled' })
+      .where(and(eq(reminders.todoId, todo.id), eq(reminders.status, 'pending')));
   } else if (change.completed === false && todo.status === 'done') {
     // reopened externally
     await ctx.db.update(todos)

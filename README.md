@@ -28,18 +28,18 @@ Every AI-created todo shows **who** added it and **why**:
 ## 0. Prerequisites
 
 - Node ≥ 20 and [pnpm](https://pnpm.io) (`npm i -g pnpm`)
-- PostgreSQL 16, Redis, and [Mailpit](https://mailpit.axllent.org) (local email catcher)
+- PostgreSQL 16 and [Mailpit](https://mailpit.axllent.org) (local email catcher)
 - Flutter 3.x (only for the mobile app)
 
 macOS one-liner for the services:
 
 ```bash
-brew install postgresql@16 redis mailpit
-brew services start postgresql@16 redis mailpit
+brew install postgresql@16 mailpit
+brew services start postgresql@16 mailpit
 createdb askhumantowork
 ```
 
-(Prefer containers? `docker compose up -d` starts the same three services.)
+(Prefer containers? `docker compose up -d` starts the same services.)
 
 ## 1. Install & configure
 
@@ -174,7 +174,7 @@ date-only due dates and no reminders — our reminder engine still covers you), 
 AI agents ──MCP (stdio / HTTP)──►┐
 Web (React) ──REST──────────────►│  Fastify API ──► PostgreSQL (source of truth)
 Flutter app ──REST──────────────►┘       │
-                                         ├─► BullMQ/Redis: reminder ladder + sync outbox
+                                         ├─► pg-boss (Postgres): reminder ladder + sync outbox
                                          ├─► Email (SMTP) + Web Push reminders
                                          └─► Adapters: Microsoft To Do, Google Tasks (Pro)
 ```
@@ -221,12 +221,12 @@ migrations on start; a second container from the same image runs the reminder/sy
 ```bash
 cp .env.example .env      # set SESSION_SECRET + ENCRYPTION_KEY (+ VAPID keys)
 docker compose --profile app up -d --build
-# → http://localhost:3000 (web + API + MCP), worker running, Postgres/Redis/Mailpit included
+# → http://localhost:3000 (web + API + MCP), worker running, Postgres/Mailpit included
 ```
 
 For a real host (Fly.io / Railway / a VPS): build the `Dockerfile`, provide `DATABASE_URL`,
-`REDIS_URL`, SMTP credentials, and set `COOKIE_SECURE=true` + `TRUST_PROXY=true` behind HTTPS.
-Sessions and rate limits are Redis-backed, so multiple API instances are safe.
+SMTP credentials, and set `COOKIE_SECURE=true` + `TRUST_PROXY=true` behind HTTPS.
+Sessions and the job queue live in Postgres (pg-boss), so multiple API instances are safe and no Redis is needed.
 
 ## Publishing the npm connector
 

@@ -203,6 +203,17 @@ export const syncJobs = pgTable(
   (t) => [index('sync_jobs_status_idx').on(t.status, t.nextRetryAt)],
 );
 
+// Web session store (Postgres-backed so sessions survive restarts; no Redis).
+export const webSessions = pgTable(
+  'web_sessions',
+  {
+    sid: text('sid').primaryKey(),
+    data: jsonb('data').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [index('web_sessions_expires_idx').on(t.expiresAt)],
+);
+
 export const providerCredentials = pgTable('provider_credentials', {
   provider: providerEnum('provider').primaryKey(),
   clientId: text('client_id').notNull(),
