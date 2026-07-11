@@ -54,6 +54,15 @@ class ApiClient {
 
   Future<void> logout() async => _storage.delete(key: 'device_token');
 
+  Future<Map<String, dynamic>> me() async {
+    final res = await _dio.get('/api/auth/me');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> updateNotificationPrefs(Map<String, dynamic> prefs) async {
+    await _dio.patch('/api/auth/me', data: {'notificationPrefs': prefs});
+  }
+
   // --- Todos ---
 
   Future<Agenda> agenda() async {

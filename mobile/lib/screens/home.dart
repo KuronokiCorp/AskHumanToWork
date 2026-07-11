@@ -6,6 +6,8 @@ import '../providers.dart';
 import 'ai_inbox.dart';
 import 'projects.dart';
 import 'quick_add.dart';
+import 'search.dart';
+import 'settings.dart';
 import 'today.dart';
 import 'upcoming.dart';
 
@@ -48,6 +50,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: Text(_titles[_tab]),
         actions: [
           IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const SearchScreen())),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
               invalidateTodoData(ref);
@@ -58,12 +65,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           PopupMenuButton<String>(
             onSelected: (value) async {
-              if (value == 'logout') {
+              if (value == 'settings') {
+                if (context.mounted) {
+                  Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                }
+              } else if (value == 'logout') {
                 await ref.read(apiProvider).logout();
                 ref.invalidate(authStateProvider);
               }
             },
             itemBuilder: (_) => const [
+              PopupMenuItem(value: 'settings', child: Text('Settings')),
               PopupMenuItem(value: 'logout', child: Text('Sign out')),
             ],
           ),
