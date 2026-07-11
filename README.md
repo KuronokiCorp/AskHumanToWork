@@ -243,7 +243,7 @@ pnpm typecheck && pnpm test        # TS packages (incl. date-resolution unit tes
 cd mobile && flutter analyze       # Flutter
 ```
 
-A scripted end-to-end regression (auth, todos, dedup, agenda, MCP both transports, reminder
+Core integration tests (dedup, recurrence, reminders, plan gating) run against real Postgres — locally `createdb askhumantowork_test` first. A scripted end-to-end regression (auth, todos, dedup, agenda, MCP both transports, reminder
 delivery/cancellation, plan gating) lives in the `feature-tester` agent charter at
 `.claude/agents/feature-tester.md` — Claude Code users can run it with "run the feature-tester".
 
