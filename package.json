@@ -16,6 +16,7 @@
     "test": "pnpm -r test",
     "db:generate": "pnpm --filter @askhumantowork/db generate",
     "db:migrate": "pnpm --filter @askhumantowork/db migrate",
-    "db:seed": "pnpm --filter @askhumantowork/db seed"
+    "db:seed": "pnpm --filter @askhumantowork/db seed",
+    "start": "node packages/db/dist/migrate.js && node packages/api/dist/index.js"
   }
 }
