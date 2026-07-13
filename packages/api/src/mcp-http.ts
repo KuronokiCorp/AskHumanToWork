@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createTodoMcpServer, type IntegrationInfo, type TodoClient } from 'askhumantowork-mcp';
+import { createTodoMcpServer, type IntegrationInfo, type TodoClient } from 'heyhuman-mcp';
 import {
   AgendaService,
   ProjectService,

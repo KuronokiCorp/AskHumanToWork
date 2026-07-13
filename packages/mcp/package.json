@@ -1,12 +1,12 @@
 {
-  "name": "askhumantowork-mcp",
+  "name": "heyhuman-mcp",
   "version": "0.1.0",
-  "description": "MCP server for AskHumanToWork — lets AI agents (Claude Desktop, Claude Code, any MCP client) add todos with due dates and provenance to your AskHumanToWork account, fetch your agenda, and manage tasks. Requires an AskHumanToWork API token.",
+  "description": "HeyHuman MCP connector — let Claude (or any MCP client) capture todos into HeyHuman and remind you until they are done. Thin HTTP client for the hosted API; no database required.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "askhumantowork-mcp": "./dist/bin.js"
+    "heyhuman-mcp": "./dist/bin.js"
   },
   "files": [
     "dist",

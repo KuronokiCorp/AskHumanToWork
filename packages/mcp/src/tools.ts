@@ -36,7 +36,7 @@ async function run(fn: () => Promise<{ content: { type: 'text'; text: string }[]
 }
 
 export function createTodoMcpServer(client: TodoClient): McpServer {
-  const server = new McpServer({ name: 'askhumantowork', version: '0.1.0' });
+  const server = new McpServer({ name: 'heyhuman', version: '0.1.0' });
 
   // ---------- Tools ----------
 

@@ -94,15 +94,15 @@ Ship the release notes @friday 5pm #Work !2
 ## 5. Connect Claude — the main event
 
 ```bash
-claude mcp add askhumantowork \
+claude mcp add heyhuman \
   --env TODO_API_TOKEN=tfa_your_token_here \
-  --env TODO_API_URL=http://localhost:3000 \
-  -- node <repo>/packages/mcp/dist/bin.js
+  -- npx -y heyhuman-mcp
 ```
 
-(Once the `askhumantowork-mcp` package is published to npm, replace the last line with
-`-- npx -y askhumantowork-mcp`. Claude Desktop users: see the equivalent JSON config in
-[`packages/mcp/README.md`](packages/mcp/README.md).)
+That's the whole setup — just a token. The connector is a thin HTTP client that defaults to the
+hosted API (`https://askhumantowork--askhumantowork.asia-east1.hosted.app`); **no local server or
+database required**. Point it elsewhere with `--env TODO_API_URL=...` if you self-host. Claude
+Desktop users: see the equivalent JSON config in [`packages/mcp/README.md`](packages/mcp/README.md).
 
 Now, in any Claude session:
 
@@ -188,7 +188,7 @@ Flutter app ──REST──────────────►┘       │
 | `packages/db` | Drizzle ORM schema, migrations, seed |
 | `packages/core` | domain services, entitlements, sync engine, provider adapters |
 | `packages/api` | Fastify REST API, auth, `/mcp` HTTP transport, background workers |
-| `packages/mcp` | `askhumantowork-mcp` — publishable stdio MCP connector |
+| `packages/mcp` | `heyhuman-mcp` — publishable stdio MCP connector |
 | `packages/web` | React web app (Vite + Tailwind + TanStack Query) |
 | `mobile/` | Flutter app (Riverpod + dio + local notifications) |
 

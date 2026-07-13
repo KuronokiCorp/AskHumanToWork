@@ -50,7 +50,7 @@ export function registerTokenRoutes(app: FastifyInstance, ctx: AppContext) {
       mcpConfig: {
         stdio: {
           command: 'npx',
-          args: ['-y', 'askhumantowork-mcp'],
+          args: ['-y', 'heyhuman-mcp'],
           env: { TODO_API_TOKEN: raw, TODO_API_URL: env.apiBaseUrl },
         },
         http: { url: `${env.apiBaseUrl}/mcp`, headers: { Authorization: `Bearer ${raw}` } },

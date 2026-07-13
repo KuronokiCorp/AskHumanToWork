@@ -40,9 +40,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.11.0
         version: 1.29.0(zod@3.25.76)
-      askhumantowork-mcp:
-        specifier: workspace:*
-        version: link:../mcp
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -55,6 +52,9 @@ importers:
       fastify:
         specifier: ^5.2.0
         version: 5.10.0
+      heyhuman-mcp:
+        specifier: workspace:*
+        version: link:../mcp
       nodemailer:
         specifier: ^6.9.16
         version: 6.10.1

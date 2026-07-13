@@ -1,4 +1,4 @@
-# askhumantowork-mcp
+# heyhuman-mcp
 
 MCP server for [AskHumanToWork](https://github.com/KuronokiCorp/AskHumanToWork) — the todo hub where **AI agents capture your
 todos** (with due dates and "why this exists" provenance) and the system **reminds you until they're
@@ -17,7 +17,7 @@ This package is the stdio MCP connector. It talks to your AskHumanToWork server 
 claude mcp add askhumantowork \
   --env TODO_API_TOKEN=tfa_... \
   --env TODO_API_URL=https://your-server.example.com \
-  -- npx -y askhumantowork-mcp
+  -- npx -y heyhuman-mcp
 ```
 
 **Claude Desktop** (`claude_desktop_config.json`)
@@ -27,7 +27,7 @@ claude mcp add askhumantowork \
   "mcpServers": {
     "askhumantowork": {
       "command": "npx",
-      "args": ["-y", "askhumantowork-mcp"],
+      "args": ["-y", "heyhuman-mcp"],
       "env": {
         "TODO_API_TOKEN": "tfa_...",
         "TODO_API_URL": "https://your-server.example.com"

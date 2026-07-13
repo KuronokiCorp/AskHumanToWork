@@ -52,16 +52,15 @@ export default function SettingsTokens() {
       {created && (
         <SectionCard tone="success" title="Token created — copy it now, it won't be shown again">
           <code className="block select-all break-all rounded-lg bg-white p-2.5 text-xs shadow-card">{created.token}</code>
-          <div className="mt-3 text-[13px] font-semibold text-emerald-800">Claude Code:</div>
+          <div className="mt-3 text-[13px] font-semibold text-emerald-800">Claude Code / Desktop (just a token — no local setup):</div>
           <pre className="mt-1 overflow-x-auto rounded-lg bg-white p-2.5 text-xs shadow-card">
-{`claude mcp add askhumantowork \\
+{`claude mcp add heyhuman \\
   --env TODO_API_TOKEN=${created.token} \\
-  --env TODO_API_URL=${location.protocol}//${location.hostname}:3000 \\
-  -- npx -y askhumantowork-mcp`}
+  -- npx -y heyhuman-mcp`}
           </pre>
           <div className="mt-3 text-[13px] font-semibold text-emerald-800">Remote (Streamable HTTP):</div>
           <pre className="mt-1 overflow-x-auto rounded-lg bg-white p-2.5 text-xs shadow-card">
-{`URL: ${location.protocol}//${location.hostname}:3000/mcp
+{`URL: ${location.origin}/mcp
 Header: Authorization: Bearer ${created.token}`}
           </pre>
         </SectionCard>
