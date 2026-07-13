@@ -3,9 +3,7 @@ import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import {
   Bell,
   Bot,
-  CalendarDays,
-  CalendarRange,
-  Flame,
+  CalendarCheck,
   KeyRound,
   LayoutList,
   LogOut,
@@ -24,9 +22,7 @@ import SettingsNotifications from './pages/SettingsNotifications';
 import SettingsAdmin from './pages/SettingsAdmin';
 
 const nav = [
-  { to: '/today', label: 'Today', Icon: CalendarDays },
-  { to: '/upcoming', label: 'Upcoming', Icon: CalendarRange },
-  { to: '/overdue', label: 'Overdue', Icon: Flame },
+  { to: '/agenda', label: 'Agenda', Icon: CalendarCheck },
   { to: '/inbox-ai', label: 'AI Inbox', Icon: Bot },
   { to: '/all', label: 'All todos', Icon: LayoutList },
 ];
@@ -116,10 +112,12 @@ export default function App() {
 
       <main className="ml-[232px] flex-1">
         <Routes>
-          <Route path="/" element={<Navigate to="/today" replace />} />
-          <Route path="/today" element={<TodosView view="today" />} />
-          <Route path="/upcoming" element={<TodosView view="upcoming" />} />
-          <Route path="/overdue" element={<TodosView view="overdue" />} />
+          <Route path="/" element={<Navigate to="/agenda" replace />} />
+          <Route path="/agenda" element={<TodosView view="agenda" />} />
+          {/* Old time views now live inside Agenda; redirect for bookmarks + digest email links */}
+          <Route path="/today" element={<Navigate to="/agenda" replace />} />
+          <Route path="/upcoming" element={<Navigate to="/agenda" replace />} />
+          <Route path="/overdue" element={<Navigate to="/agenda" replace />} />
           <Route path="/inbox-ai" element={<TodosView view="ai" />} />
           <Route path="/all" element={<TodosView view="all" />} />
           <Route path="/project/:name" element={<TodosView view="project" />} />

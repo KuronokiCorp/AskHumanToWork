@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Bot, Flame, Inbox, PartyPopper, Search, X } from 'lucide-react';
+import { Bot, CalendarDays, CalendarRange, Flame, Inbox, Search, Sparkles, X } from 'lucide-react';
 import type { Todo } from '@askhumantowork/shared';
 import { api } from '../api';
 import QuickAdd from '../components/QuickAdd';
@@ -18,16 +18,46 @@ function useDebounced<T>(value: T, ms: number): T {
   return debounced;
 }
 
-type View = 'today' | 'upcoming' | 'overdue' | 'ai' | 'all' | 'project';
+type View = 'agenda' | 'ai' | 'all' | 'project';
 
 const titles: Record<View, string> = {
-  today: 'Today',
-  upcoming: 'Upcoming',
-  overdue: 'Overdue',
+  agenda: 'Agenda',
   ai: 'AI Inbox',
   all: 'All todos',
   project: 'Project',
 };
+
+const open = (t: Todo) => t.status === 'open' || t.status === 'doing';
+
+/** A titled section of the Agenda view (Overdue / Today / This week). */
+function AgendaSection({
+  icon,
+  label,
+  tone,
+  todos,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  tone: 'red' | 'zinc' | 'violet';
+  todos: Todo[];
+}) {
+  if (todos.length === 0) return null;
+  const labelTone = tone === 'red' ? 'text-red-600' : tone === 'violet' ? 'text-violet-600' : 'text-zinc-500';
+  return (
+    <div className="mb-6">
+      <div className={`mb-2 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-wider ${labelTone}`}>
+        {icon}
+        {label}
+        <span className="text-zinc-400">· {todos.length}</span>
+      </div>
+      <div className="flex flex-col gap-2">
+        {todos.map((t) => (
+          <TodoItem key={t.id} todo={t} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function TodosView({ view }: { view: View }) {
   const { name } = useParams();
@@ -36,7 +66,7 @@ export default function TodosView({ view }: { view: View }) {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounced(search, 250);
 
-  const agenda = useQuery({ queryKey: ['agenda'], queryFn: api.agenda });
+  const agenda = useQuery({ queryKey: ['agenda'], queryFn: api.agenda, enabled: view === 'agenda' });
   const listQuery = useQuery({
     queryKey: ['todos', view, name, debouncedSearch, tag],
     queryFn: () => {
@@ -51,82 +81,96 @@ export default function TodosView({ view }: { view: View }) {
     enabled: view === 'ai' || view === 'all' || view === 'project',
   });
 
-  let todos: Todo[] = [];
-  let loading = false;
-  if (view === 'today') {
-    todos = agenda.data?.today ?? [];
-    loading = agenda.isLoading;
-  } else if (view === 'upcoming') {
-    todos = agenda.data?.upcoming ?? [];
-    loading = agenda.isLoading;
-  } else if (view === 'overdue') {
-    todos = agenda.data?.overdue ?? [];
-    loading = agenda.isLoading;
-  } else {
-    todos = listQuery.data?.todos ?? [];
-    loading = listQuery.isLoading;
-  }
-
-  const openTodos = todos.filter((t) => t.status === 'open' || t.status === 'doing');
-  const doneTodos = todos.filter((t) => t.status === 'done');
-
   const dateLine = new Date().toLocaleDateString([], {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
 
+  // ---- Combined Agenda view: Overdue → Today → This week, as sections ----
+  if (view === 'agenda') {
+    const overdue = (agenda.data?.overdue ?? []).filter(open);
+    const today = (agenda.data?.today ?? []).filter(open);
+    const upcoming = (agenda.data?.upcoming ?? []).filter(open);
+    const doneToday = (agenda.data?.today ?? []).filter((t) => t.status === 'done');
+    const totalOpen = overdue.length + today.length + upcoming.length;
+
+    return (
+      <div className="mx-auto max-w-[720px] px-8 py-10 animate-fade-in">
+        <PageHeader title="Agenda" subtitle={`${dateLine} — ${agenda.data?.summary ?? ''}`} />
+        <QuickAdd />
+
+        {agenda.isLoading ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[68px] animate-pulse rounded-2xl bg-zinc-200/50" />
+            ))}
+          </div>
+        ) : totalOpen === 0 && doneToday.length === 0 ? (
+          <EmptyState
+            icon={<Sparkles size={22} />}
+            title="Nothing on your plate"
+            hint="You're all caught up — enjoy the calm, or add something above."
+          />
+        ) : (
+          <>
+            <AgendaSection icon={<Flame size={13} strokeWidth={2.5} />} label="Overdue" tone="red" todos={overdue} />
+            <AgendaSection icon={<CalendarDays size={13} strokeWidth={2.5} />} label="Today" tone="zinc" todos={today} />
+            <AgendaSection icon={<CalendarRange size={13} strokeWidth={2.5} />} label="This week" tone="violet" todos={upcoming} />
+            {doneToday.length > 0 && (
+              <div className="mt-1">
+                <div className="mb-2 flex items-center gap-3 px-1">
+                  <span className="text-[10.5px] font-semibold uppercase tracking-wider text-zinc-400">
+                    Done today · {doneToday.length}
+                  </span>
+                  <span className="h-px flex-1 bg-zinc-200" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  {doneToday.map((t) => (
+                    <TodoItem key={t.id} todo={t} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // ---- List views: AI Inbox / All todos / Project ----
+  const todos = listQuery.data?.todos ?? [];
+  const loading = listQuery.isLoading;
+  const openTodos = todos.filter(open);
+  const doneTodos = todos.filter((t) => t.status === 'done');
+
   return (
     <div className="mx-auto max-w-[720px] px-8 py-10 animate-fade-in">
       <PageHeader
         title={view === 'project' ? `#${name}` : titles[view]}
-        subtitle={
-          view === 'today'
-            ? `${dateLine} — ${agenda.data?.summary ?? ''}`
-            : view === 'ai'
-              ? 'Todos your AI agents captured for you — each shows why it exists.'
-              : view === 'upcoming'
-                ? 'Due in the next 7 days.'
-                : undefined
-        }
+        subtitle={view === 'ai' ? 'Todos your AI agents captured for you — each shows why it exists.' : undefined}
       />
 
       {view !== 'ai' && <QuickAdd defaultProject={view === 'project' ? name : undefined} />}
 
-      {(view === 'all' || view === 'ai' || view === 'project') && (
-        <div className="mb-4 flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search titles and notes…"
-              className={`${inputCls} pl-9`}
-            />
-          </div>
-          {tag && (
-            <button
-              onClick={() => setParams({}, { replace: true })}
-              className="shrink-0"
-              title="Clear tag filter"
-            >
-              <Chip tone="violet">
-                #{tag} <X size={11} strokeWidth={3} />
-              </Chip>
-            </button>
-          )}
+      <div className="mb-4 flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search titles and notes…"
+            className={`${inputCls} pl-9`}
+          />
         </div>
-      )}
-
-      {view === 'today' && (agenda.data?.overdue.length ?? 0) > 0 && (
-        <a
-          href="/overdue"
-          className="mb-4 flex items-center gap-2.5 rounded-2xl border border-red-200/80 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 text-sm font-medium text-red-700 shadow-card transition-all hover:-translate-y-px hover:shadow-card-hover"
-        >
-          <Flame size={16} className="shrink-0" />
-          {agenda.data!.overdue.length} overdue — jump to the Overdue view
-        </a>
-      )}
+        {tag && (
+          <button onClick={() => setParams({}, { replace: true })} className="shrink-0" title="Clear tag filter">
+            <Chip tone="violet">
+              #{tag} <X size={11} strokeWidth={3} />
+            </Chip>
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <div className="space-y-2">
@@ -141,8 +185,6 @@ export default function TodosView({ view }: { view: View }) {
             title="No AI-captured todos yet"
             hint="Connect an agent via MCP (Settings → API tokens) and Claude will start filing follow-ups here."
           />
-        ) : view === 'overdue' ? (
-          <EmptyState icon={<PartyPopper size={22} />} title="Nothing overdue" hint="You're all caught up." />
         ) : (
           <EmptyState icon={<Inbox size={22} />} title="Nothing here" hint="Enjoy the calm — or add something above." />
         )
