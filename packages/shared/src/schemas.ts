@@ -29,6 +29,8 @@ export const todoSchema = z.object({
   priority: z.number().int().min(0).max(3),
   source: z.enum(TODO_SOURCES),
   createdByAgent: z.string().nullable(),
+  /** Name of the API token that created this (which device/app). Server-set, authoritative. */
+  createdByToken: z.string().nullable(),
   originContext: z.string().nullable(),
   tags: z.array(z.string()),
   /** RRULE-lite; present on recurring todos. Completing one spawns the next occurrence. */

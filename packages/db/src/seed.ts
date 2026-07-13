@@ -61,6 +61,7 @@ async function main() {
       priority: 3,
       source: 'ai',
       createdByAgent: 'claude-code',
+      createdByToken: 'Work Linux (Claude Code)',
       originContext: 'Claude noticed the payments test failed 3 times while you were debugging auth.',
       tags: ['ci'],
     },
@@ -80,6 +81,7 @@ async function main() {
       priority: 2,
       source: 'ai',
       createdByAgent: 'claude-desktop',
+      createdByToken: 'Shinan MacBook (Claude Desktop)',
       originContext: 'You told Claude you would share the doc "by yesterday" during planning.',
     },
   ]);

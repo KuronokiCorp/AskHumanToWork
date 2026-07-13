@@ -10,6 +10,7 @@ class Todo {
   final int priority;
   final String source;
   final String? createdByAgent;
+  final String? createdByToken;
   final String? originContext;
   final List<String> tags;
   /// Human display of the recurrence rule, e.g. "every monday"; null if one-off.
@@ -27,6 +28,7 @@ class Todo {
     required this.priority,
     required this.source,
     this.createdByAgent,
+    this.createdByToken,
     this.originContext,
     required this.tags,
     this.recurrenceDisplay,
@@ -44,6 +46,7 @@ class Todo {
         priority: (json['priority'] as num).toInt(),
         source: json['source'] as String,
         createdByAgent: json['createdByAgent'] as String?,
+        createdByToken: json['createdByToken'] as String?,
         originContext: json['originContext'] as String?,
         tags: (json['tags'] as List<dynamic>? ?? []).cast<String>(),
         recurrenceDisplay: (json['recurrence'] as Map<String, dynamic>?)?['display'] as String?,

@@ -77,7 +77,7 @@ class TodoTile extends ConsumerWidget {
                       color: Colors.deepPurple.shade50,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text('🤖 ${todo.createdByAgent ?? 'AI'}',
+                    child: Text('🤖 ${todo.createdByToken ?? todo.createdByAgent ?? 'AI'}',
                         style: TextStyle(fontSize: 11, color: Colors.deepPurple.shade700)),
                   ),
               ],

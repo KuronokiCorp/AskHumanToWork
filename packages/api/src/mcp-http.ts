@@ -45,7 +45,12 @@ class CoreTodoClient implements TodoClient {
   }
 
   async addTodo(input: CreateTodoInput) {
-    const result = await this.todoSvc.create(this.userId, input, { source: 'ai', agent: this.agent });
+    // `this.agent` here is the API token's name — the authoritative "which device/app".
+    const result = await this.todoSvc.create(this.userId, input, {
+      source: 'ai',
+      agent: this.agent,
+      tokenName: this.agent,
+    });
     return { todo: result.todo, deduplicated: result.deduplicated, sync: result.sync };
   }
 

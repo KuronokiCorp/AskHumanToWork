@@ -89,12 +89,23 @@ export default function TodoItem({ todo }: { todo: Todo }) {
               <Chip>{tag}</Chip>
             </Link>
           ))}
-          {todo.source === 'ai' && (
-            <Chip tone="violet" title={todo.originContext ?? undefined}>
-              <Bot size={11} strokeWidth={2.5} />
-              {todo.createdByAgent ?? 'AI'}
-            </Chip>
-          )}
+          {todo.source === 'ai' &&
+            (() => {
+              // Which device/app this came from — the token name is authoritative;
+              // fall back to the client-reported agent type.
+              const device = todo.createdByToken ?? todo.createdByAgent ?? 'AI';
+              const agentType =
+                todo.createdByAgent && todo.createdByAgent !== todo.createdByToken
+                  ? todo.createdByAgent
+                  : null;
+              return (
+                <Chip tone="violet" title={`Captured from ${device}${agentType ? ` (${agentType})` : ''}`}>
+                  <Bot size={11} strokeWidth={2.5} />
+                  {device}
+                  {agentType && <span className="font-normal text-violet-400">· {agentType}</span>}
+                </Chip>
+              );
+            })()}
         </div>
 
         {todo.source === 'ai' && todo.originContext && (

@@ -1,0 +1,1 @@
+ALTER TABLE "todos" ADD COLUMN "created_by_token" text;

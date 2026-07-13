@@ -55,6 +55,34 @@ async function makeUser(plan: 'free' | 'pro' = 'free') {
 }
 
 describe('TodoService', () => {
+  it('records which device/app (token name) created an AI todo', async () => {
+    const user = await makeUser();
+    const svc = new TodoService(ctx);
+    const { todo } = await svc.create(
+      user.id,
+      { title: 'from my laptop' },
+      { source: 'ai', agent: 'claude-code', tokenName: 'Shinan MacBook (Claude Code)' },
+    );
+    expect(todo.source).toBe('ai');
+    expect(todo.createdByToken).toBe('Shinan MacBook (Claude Code)');
+    expect(todo.createdByAgent).toBe('claude-code');
+  });
+
+  it('carries the origin token to the next recurrence occurrence', async () => {
+    const user = await makeUser();
+    const svc = new TodoService(ctx);
+    const { todo } = await svc.create(
+      user.id,
+      { title: 'weekly from laptop', repeat: 'every monday' },
+      { source: 'ai', tokenName: 'Shinan MacBook' },
+    );
+    await svc.complete(user.id, todo.id);
+    const next = (await db.query.todos.findMany({ where: eq(todos.ownerId, user.id) })).find(
+      (r) => r.status === 'open',
+    )!;
+    expect(next.createdByToken).toBe('Shinan MacBook');
+  });
+
   it('resolves natural dates in the user timezone', async () => {
     const user = await makeUser();
     const svc = new TodoService(ctx);

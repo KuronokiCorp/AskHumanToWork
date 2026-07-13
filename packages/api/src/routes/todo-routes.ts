@@ -43,10 +43,13 @@ export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.post('/api/todos', { preHandler: [auth, requireScope('todos:write')] }, async (req, reply) => {
     const input = createTodoInputSchema.parse(req.body);
-    const source = req.auth!.via === 'token' && req.auth!.agentName !== 'mobile-device' ? 'ai' : 'human';
+    const viaToken = req.auth!.via === 'token' && req.auth!.agentName !== 'mobile-device';
+    const source = viaToken ? 'ai' : 'human';
     const result = await todoSvc.create(req.auth!.userId, input, {
       source: (req.headers['x-todo-source'] as 'human' | 'ai') ?? source,
       agent: req.headers['x-agent-name'] as string | undefined,
+      // Authoritative "which device/app" = the token name the user chose.
+      tokenName: viaToken ? req.auth!.agentName : undefined,
     });
     return reply.code(result.deduplicated ? 200 : 201).send(result);
   });

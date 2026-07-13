@@ -58,7 +58,7 @@ export class TodoService {
   async create(
     userId: string,
     input: CreateTodoInput,
-    meta: { source: 'human' | 'ai'; agent?: string } = { source: 'human' },
+    meta: { source: 'human' | 'ai'; agent?: string; tokenName?: string } = { source: 'human' },
   ): Promise<CreateTodoResult> {
     const user = await this.getUser(userId);
     let dueAt = this.resolveDue(input, user.timezone) ?? null;
@@ -104,6 +104,7 @@ export class TodoService {
         priority: input.priority ?? 0,
         source: meta.source,
         createdByAgent: meta.agent ?? null,
+        createdByToken: meta.tokenName ?? null,
         originContext: input.originContext ?? null,
         tags: input.tags ?? [],
         recurrence,
@@ -267,6 +268,7 @@ export class TodoService {
         priority: completed.priority,
         source: completed.source,
         createdByAgent: completed.createdByAgent,
+        createdByToken: completed.createdByToken,
         originContext: completed.originContext,
         tags: completed.tags,
         recurrence: rule,

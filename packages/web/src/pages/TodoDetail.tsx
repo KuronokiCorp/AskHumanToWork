@@ -152,7 +152,10 @@ export default function TodoDetail() {
         {t.source === 'ai' && (
           <div className="mt-5 rounded-xl border border-violet-200/70 bg-gradient-to-r from-violet-50 to-indigo-50/60 p-4">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-violet-800">
-              <Bot size={15} /> Added by {t.createdByAgent ?? 'an AI agent'}
+              <Bot size={15} /> Captured from {t.createdByToken ?? t.createdByAgent ?? 'an AI agent'}
+              {t.createdByToken && t.createdByAgent && t.createdByAgent !== t.createdByToken && (
+                <span className="font-normal text-violet-500/70">({t.createdByAgent})</span>
+              )}
             </div>
             {t.originContext && (
               <div className="mt-1.5 text-[13px] italic leading-relaxed text-violet-700/90">“{t.originContext}”</div>

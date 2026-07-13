@@ -69,7 +69,11 @@ export const todos = pgTable(
     status: todoStatusEnum('status').notNull().default('open'),
     priority: smallint('priority').notNull().default(0),
     source: todoSourceEnum('source').notNull().default('human'),
+    // What the client reported it is (x-agent-name header), e.g. "claude-code".
     createdByAgent: text('created_by_agent'),
+    // Authoritative source: the NAME of the API token used (the device/app the
+    // user named when creating it, e.g. "MacBook Claude Code"). Server-set.
+    createdByToken: text('created_by_token'),
     originContext: text('origin_context'),
     tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
     // RRULE-lite JSON ({freq, interval, byWeekday?, display}); completing spawns next occurrence

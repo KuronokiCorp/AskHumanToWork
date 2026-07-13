@@ -16,6 +16,7 @@ export function serializeTodo(row: TodoRow, project?: Pick<ProjectRow, 'name'> |
     priority: row.priority,
     source: row.source,
     createdByAgent: row.createdByAgent,
+    createdByToken: row.createdByToken ?? null,
     originContext: row.originContext,
     tags: row.tags,
     recurrence: (row.recurrence as Recurrence | null) ?? null,
