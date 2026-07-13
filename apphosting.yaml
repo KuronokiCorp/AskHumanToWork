@@ -16,13 +16,15 @@ env:
     value: "true"
   - variable: COOKIE_SECURE
     value: "true"
-  # Set these as secrets in the Firebase console (App Hosting → backend → Settings):
-  #   DATABASE_URL       postgres connection string (Neon or Cloud SQL)
-  #   SESSION_SECRET     openssl rand -base64 32
-  #   ENCRYPTION_KEY     openssl rand -base64 32
-  #   API_BASE_URL / WEB_BASE_URL   the backend's public URL
-  #   SMTP_HOST / SMTP_PORT / SMTP_FROM (+ provider creds)  for reminder emails
-  #   ANTHROPIC_API_KEY  optional — Claude-written morning digests
+  - variable: API_BASE_URL
+    value: "https://askhumantowork--askhumantowork.asia-east1.hosted.app"
+  - variable: WEB_BASE_URL
+    value: "https://askhumantowork--askhumantowork.asia-east1.hosted.app"
+  # Secrets (Cloud Secret Manager, set via `firebase apphosting:secrets:set`):
+  #   DATABASE_URL       Supabase session-pooler connection string
+  #   SESSION_SECRET / ENCRYPTION_KEY   random 32-byte base64
+  # Later: SMTP_HOST/SMTP_PORT/SMTP_FROM (+ creds) for reminder emails,
+  #        ANTHROPIC_API_KEY for Claude-written morning digests
   - variable: DATABASE_URL
     secret: DATABASE_URL
   - variable: SESSION_SECRET
