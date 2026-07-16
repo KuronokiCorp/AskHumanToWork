@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { users } from '@askhumantowork/db';
 import { formatInTimezone, timezoneOffsetMinutes, type Agenda } from '@askhumantowork/shared';
 import type { AppContext } from './context.js';
-import { TodoService } from './todo-service.js';
+import { TodoService, type TokenProjectScope } from './todo-service.js';
 
 export class AgendaService {
   private todoSvc: TodoService;
@@ -12,7 +12,7 @@ export class AgendaService {
   }
 
   /** Today / overdue / next-7-days snapshot in the user's timezone. */
-  async forUser(userId: string): Promise<Agenda> {
+  async forUser(userId: string, scope?: TokenProjectScope | null): Promise<Agenda> {
     const user = await this.ctx.db.query.users.findFirst({ where: eq(users.id, userId) });
     if (!user) throw new Error('user not found');
     const tz = user.timezone;
@@ -27,11 +27,15 @@ export class AgendaService {
     const endOfToday = new Date(endOfDayLocal - offset * 60_000);
     const endOfWeek = new Date(endOfToday.getTime() + 7 * 24 * 3_600_000);
 
-    const open = await this.todoSvc.list(userId, {
-      status: 'open',
-      limit: 200,
-      offset: 0,
-    });
+    const open = await this.todoSvc.list(
+      userId,
+      {
+        status: 'open',
+        limit: 200,
+        offset: 0,
+      },
+      scope,
+    );
 
     const overdue = open.filter((t) => t.dueAt && new Date(t.dueAt) < now);
     const today = open.filter(

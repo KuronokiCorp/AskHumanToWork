@@ -13,6 +13,7 @@ import {
 import { api, ApiError } from './api';
 import { Logo } from './components/ui';
 import Login from './pages/Login';
+import Landing from './pages/Landing';
 import ResetPassword from './pages/ResetPassword';
 import TodosView from './pages/TodosView';
 import TodoDetail from './pages/TodoDetail';
@@ -65,7 +66,12 @@ export default function App() {
   }
   // Reset links arrive unauthenticated — handle before the login gate.
   if (location.pathname === '/reset-password') return <ResetPassword />;
-  if (me.isError) return <Login onDone={() => me.refetch()} />;
+  if (me.isError) {
+    // Logged-out: marketing landing at '/', login form everywhere else.
+    if (location.pathname === '/login') return <Login onDone={() => me.refetch()} />;
+    if (location.pathname === '/') return <Landing />;
+    return <Login onDone={() => me.refetch()} />;
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -113,6 +119,9 @@ export default function App() {
       <main className="ml-[232px] flex-1">
         <Routes>
           <Route path="/" element={<Navigate to="/agenda" replace />} />
+          {/* Signed in but still on the marketing/login paths → go to the app. */}
+          <Route path="/login" element={<Navigate to="/agenda" replace />} />
+          <Route path="/landing" element={<Navigate to="/agenda" replace />} />
           <Route path="/agenda" element={<TodosView view="agenda" />} />
           {/* Old time views now live inside Agenda; redirect for bookmarks + digest email links */}
           <Route path="/today" element={<Navigate to="/agenda" replace />} />

@@ -16,7 +16,7 @@ import {
 import { eq } from 'drizzle-orm';
 import { todos, users } from '@askhumantowork/db';
 import { verifyAction } from '@askhumantowork/core';
-import { requireAuth, requireScope } from '../auth.js';
+import { requireAuth, requireScope, tokenProjectScope } from '../auth.js';
 
 export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
   const todoSvc = new TodoService(ctx);
@@ -38,31 +38,36 @@ export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.get('/api/todos', { preHandler: [auth, requireScope('todos:read')] }, async (req) => {
     const query = listTodosQuerySchema.parse(req.query);
-    return { todos: await todoSvc.list(req.auth!.userId, query) };
+    return { todos: await todoSvc.list(req.auth!.userId, query, tokenProjectScope(req.auth)) };
   });
 
   app.post('/api/todos', { preHandler: [auth, requireScope('todos:write')] }, async (req, reply) => {
     const input = createTodoInputSchema.parse(req.body);
     const viaToken = req.auth!.via === 'token' && req.auth!.agentName !== 'mobile-device';
     const source = viaToken ? 'ai' : 'human';
-    const result = await todoSvc.create(req.auth!.userId, input, {
-      source: (req.headers['x-todo-source'] as 'human' | 'ai') ?? source,
-      agent: req.headers['x-agent-name'] as string | undefined,
-      // Authoritative "which device/app" = the token name the user chose.
-      tokenName: viaToken ? req.auth!.agentName : undefined,
-    });
+    const result = await todoSvc.create(
+      req.auth!.userId,
+      input,
+      {
+        source: (req.headers['x-todo-source'] as 'human' | 'ai') ?? source,
+        agent: req.headers['x-agent-name'] as string | undefined,
+        // Authoritative "which device/app" = the token name the user chose.
+        tokenName: viaToken ? req.auth!.agentName : undefined,
+      },
+      tokenProjectScope(req.auth),
+    );
     return reply.code(result.deduplicated ? 200 : 201).send(result);
   });
 
   app.get('/api/todos/:id', { preHandler: [auth, requireScope('todos:read')] }, async (req) => {
     const { id } = req.params as { id: string };
-    return { todo: await todoSvc.getById(req.auth!.userId, id) };
+    return { todo: await todoSvc.getById(req.auth!.userId, id, tokenProjectScope(req.auth)) };
   });
 
   app.patch('/api/todos/:id', { preHandler: [auth, requireScope('todos:write')] }, async (req) => {
     const { id } = req.params as { id: string };
     const input = updateTodoInputSchema.parse(req.body);
-    return { todo: await todoSvc.update(req.auth!.userId, id, input) };
+    return { todo: await todoSvc.update(req.auth!.userId, id, input, tokenProjectScope(req.auth)) };
   });
 
   app.post(
@@ -70,7 +75,7 @@ export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
     { preHandler: [auth, requireScope('todos:write')] },
     async (req) => {
       const { id } = req.params as { id: string };
-      return { todo: await todoSvc.complete(req.auth!.userId, id) };
+      return { todo: await todoSvc.complete(req.auth!.userId, id, tokenProjectScope(req.auth)) };
     },
   );
 
@@ -85,7 +90,7 @@ export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
       if (Number.isNaN(resolved.getTime())) {
         return reply.code(400).send({ error: `cannot parse snooze time: ${until}` });
       }
-      await todoSvc.getById(req.auth!.userId, id); // ownership check
+      await todoSvc.getById(req.auth!.userId, id, tokenProjectScope(req.auth)); // ownership check
       await reminderSvc.snooze(id, resolved, user!.notificationPrefs);
       return { ok: true, until: resolved.toISOString() };
     },
@@ -93,12 +98,12 @@ export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
 
   app.delete('/api/todos/:id', { preHandler: [auth, requireScope('todos:write')] }, async (req) => {
     const { id } = req.params as { id: string };
-    await todoSvc.remove(req.auth!.userId, id);
+    await todoSvc.remove(req.auth!.userId, id, tokenProjectScope(req.auth));
     return { ok: true };
   });
 
   app.get('/api/agenda', { preHandler: [auth, requireScope('todos:read')] }, async (req) => {
-    return agendaSvc.forUser(req.auth!.userId);
+    return agendaSvc.forUser(req.auth!.userId, tokenProjectScope(req.auth));
   });
 
   app.get('/api/projects', { preHandler: [auth, requireScope('projects:read')] }, async (req) => {

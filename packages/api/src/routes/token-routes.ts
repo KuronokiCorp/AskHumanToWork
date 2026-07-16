@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { and, eq } from 'drizzle-orm';
-import { agentTokens, pushSubscriptions } from '@askhumantowork/db';
+import { agentTokens, projects, pushSubscriptions } from '@askhumantowork/db';
 import { generateToken, hashToken, type AppContext } from '@askhumantowork/core';
 import { createTokenInputSchema } from '@askhumantowork/shared';
 import { requireAuth } from '../auth.js';
@@ -16,12 +16,18 @@ export function registerTokenRoutes(app: FastifyInstance, ctx: AppContext) {
       where: and(eq(agentTokens.userId, req.auth!.userId)),
       orderBy: (t, { desc }) => desc(t.createdAt),
     });
+    const projectRows = await ctx.db.query.projects.findMany({
+      where: eq(projects.ownerId, req.auth!.userId),
+    });
+    const projectName = new Map(projectRows.map((p) => [p.id, p.name]));
     return {
       tokens: rows.map((t) => ({
         id: t.id,
         name: t.name,
         scopes: t.scopes,
         kind: t.kind,
+        projectId: t.projectId ?? null,
+        projectName: t.projectId ? (projectName.get(t.projectId) ?? null) : null,
         lastUsedAt: t.lastUsedAt?.toISOString() ?? null,
         createdAt: t.createdAt.toISOString(),
       })),
@@ -33,6 +39,13 @@ export function registerTokenRoutes(app: FastifyInstance, ctx: AppContext) {
       return reply.code(403).send({ error: 'tokens can only be created from a web session' });
     }
     const input = createTokenInputSchema.parse(req.body);
+    // A scoped token must reference a project the caller actually owns.
+    if (input.projectId) {
+      const owned = await ctx.db.query.projects.findFirst({
+        where: and(eq(projects.id, input.projectId), eq(projects.ownerId, req.auth!.userId)),
+      });
+      if (!owned) return reply.code(400).send({ error: 'project not found' });
+    }
     const raw = generateToken('tfa');
     const [row] = await ctx.db
       .insert(agentTokens)
@@ -41,6 +54,7 @@ export function registerTokenRoutes(app: FastifyInstance, ctx: AppContext) {
         name: input.name,
         tokenHash: hashToken(raw),
         scopes: input.scopes,
+        projectId: input.projectId ?? null,
         kind: 'pat',
       })
       .returning();

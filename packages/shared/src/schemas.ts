@@ -133,6 +133,12 @@ export const loginInputSchema = z.object({
 export const createTokenInputSchema = z.object({
   name: z.string().min(1).max(100),
   scopes: z.array(z.enum(TOKEN_SCOPES)).min(1),
+  /**
+   * Optional project to scope this token to. When set, a default (PAT) token can
+   * only see/manipulate todos in this project or ones it created itself.
+   * Null/omitted = full-account access (back-compat).
+   */
+  projectId: z.string().uuid().nullish(),
 });
 
 // ---------- Agenda ----------

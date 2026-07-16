@@ -110,6 +110,56 @@ describe('TodoService', () => {
     expect(b.todo.projectId).toBe(a.todo.projectId);
   });
 
+  it('a project-scoped token sees only its project + todos it created', async () => {
+    const user = await makeUser();
+    const svc = new TodoService(ctx);
+
+    // In the token's project (human-created, no token) → visible via project match.
+    const inScope = await svc.create(user.id, { title: 'in Alpha', project: 'Alpha' });
+    const projectId = inScope.todo.projectId!;
+
+    // Different project, different token → NOT visible.
+    const other = await svc.create(
+      user.id,
+      { title: 'in Beta', project: 'Beta' },
+      { source: 'ai', tokenName: 'other-token' },
+    );
+
+    // Different project but created BY the scoped token → visible via createdByToken.
+    const mine = await svc.create(
+      user.id,
+      { title: 'mine in Beta', project: 'Beta' },
+      { source: 'ai', tokenName: 'scoped-token' },
+    );
+
+    const scope = { projectId, tokenName: 'scoped-token' };
+
+    const titles = (await svc.list(user.id, { limit: 50, offset: 0 }, scope))
+      .map((t) => t.title)
+      .sort();
+    expect(titles).toEqual(['in Alpha', 'mine in Beta']);
+
+    // Reads/writes outside the scope are rejected; inside are allowed.
+    await expect(svc.getById(user.id, other.todo.id, scope)).rejects.toThrow();
+    await expect(
+      svc.update(user.id, other.todo.id, { title: 'hijacked' }, scope),
+    ).rejects.toThrow();
+    expect((await svc.getById(user.id, inScope.todo.id, scope)).id).toBe(inScope.todo.id);
+    expect((await svc.getById(user.id, mine.todo.id, scope)).id).toBe(mine.todo.id);
+
+    // A new todo from the scoped token with no project lands in the token's project.
+    const created = await svc.create(
+      user.id,
+      { title: 'auto-filed' },
+      { source: 'ai', tokenName: 'scoped-token' },
+      scope,
+    );
+    expect(created.todo.projectId).toBe(projectId);
+
+    // Full-access (no scope) still sees everything.
+    expect(await svc.list(user.id, { limit: 50, offset: 0 })).toHaveLength(4);
+  });
+
   it('spawns the next occurrence when a recurring todo is completed', async () => {
     const user = await makeUser();
     const svc = new TodoService(ctx);

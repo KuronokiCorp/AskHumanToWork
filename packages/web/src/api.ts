@@ -41,6 +41,8 @@ export interface TokenRow {
   name: string;
   scopes: string[];
   kind: string;
+  projectId: string | null;
+  projectName: string | null;
   lastUsedAt: string | null;
   createdAt: string;
 }
@@ -94,8 +96,12 @@ export const api = {
 
   // tokens
   tokens: () => call<{ tokens: TokenRow[] }>('GET', '/api/tokens'),
-  createToken: (name: string, scopes: string[]) =>
-    call<{ id: string; token: string; mcpConfig: unknown }>('POST', '/api/tokens', { name, scopes }),
+  createToken: (name: string, scopes: string[], projectId?: string | null) =>
+    call<{ id: string; token: string; mcpConfig: unknown }>('POST', '/api/tokens', {
+      name,
+      scopes,
+      projectId: projectId ?? null,
+    }),
   deleteToken: (id: string) => call('DELETE', `/api/tokens/${id}`),
 
   // integrations
