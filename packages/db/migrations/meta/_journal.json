@@ -36,6 +36,13 @@
       "when": 1783943055659,
       "tag": "0004_tricky_alex_wilder",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784104119040,
+      "tag": "0005_token_project_scope",
+      "breakpoints": true
     }
   ]
 }

@@ -28,6 +28,7 @@ COPY --from=build /app/package.json /app/pnpm-workspace.yaml ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages ./packages
 
-# drizzle migrations run at container start (idempotent)
+# drizzle migrations run at container start (idempotent), then the API boots.
+# The worker overrides this CMD (see header) so only the API instance migrates.
 EXPOSE 3000
-CMD ["node", "packages/api/dist/index.js"]
+CMD ["sh", "-c", "node packages/db/dist/migrate.js && node packages/api/dist/index.js"]

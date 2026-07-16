@@ -1,0 +1,13 @@
+{
+  "name": "AskHumanToWork",
+  "short_name": "HeyHuman",
+  "description": "Your AI asks · you do. Todos your AI captures over MCP, organized into one agenda.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any maskable" }
+  ]
+}

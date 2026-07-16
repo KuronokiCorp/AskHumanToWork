@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNotNull, lt, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, isNotNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { projects, todos, users } from '@askhumantowork/db';
 import {
   nextOccurrence,
@@ -24,6 +24,23 @@ export interface CreateTodoResult {
   todo: Todo;
   deduplicated: boolean;
   sync: { provider: Provider; status: 'queued' | 'skipped' }[];
+}
+
+/**
+ * Project scope for a default (PAT) API token. When present, reads and
+ * mutations are restricted to todos in `projectId` OR ones created by this
+ * token (`createdByToken === tokenName`). Absent = full-account access
+ * (web session, device tokens, or unscoped PATs).
+ */
+export interface TokenProjectScope {
+  projectId: string;
+  tokenName: string;
+}
+
+/** SQL predicate enforcing a token's project scope; undefined when unscoped. */
+function scopeWhere(scope?: TokenProjectScope | null): SQL | undefined {
+  if (!scope) return undefined;
+  return or(eq(todos.projectId, scope.projectId), eq(todos.createdByToken, scope.tokenName));
 }
 
 export class TodoService {
@@ -59,13 +76,22 @@ export class TodoService {
     userId: string,
     input: CreateTodoInput,
     meta: { source: 'human' | 'ai'; agent?: string; tokenName?: string } = { source: 'human' },
+    scope?: TokenProjectScope | null,
   ): Promise<CreateTodoResult> {
     const user = await this.getUser(userId);
     let dueAt = this.resolveDue(input, user.timezone) ?? null;
 
-    const project = input.project
+    let project = input.project
       ? await this.projectSvc.resolveByName(userId, input.project)
       : null;
+    // A project-scoped token drops new todos into its own project by default,
+    // so they stay visible to that token (and the project's Agenda).
+    if (!project && scope) {
+      project =
+        (await this.ctx.db.query.projects.findFirst({
+          where: and(eq(projects.id, scope.projectId), eq(projects.ownerId, userId)),
+        })) ?? null;
+    }
 
     // Idempotency: identical title+due+project within the window returns the existing todo.
     const dedupHash = sha256(
@@ -126,9 +152,14 @@ export class TodoService {
     return { todo: serializeTodo(row, project), deduplicated: false, sync };
   }
 
-  async update(userId: string, todoId: string, input: UpdateTodoInput): Promise<Todo> {
+  async update(
+    userId: string,
+    todoId: string,
+    input: UpdateTodoInput,
+    scope?: TokenProjectScope | null,
+  ): Promise<Todo> {
     const user = await this.getUser(userId);
-    const current = await this.getOwnedRow(userId, todoId);
+    const current = await this.getOwnedRow(userId, todoId, scope);
 
     const dueAt = this.resolveDue(input, user.timezone);
     const project =
@@ -185,31 +216,37 @@ export class TodoService {
     return this.getById(userId, row.id);
   }
 
-  async complete(userId: string, todoId: string): Promise<Todo> {
-    return this.update(userId, todoId, { status: 'done' });
+  async complete(userId: string, todoId: string, scope?: TokenProjectScope | null): Promise<Todo> {
+    return this.update(userId, todoId, { status: 'done' }, scope);
   }
 
-  async remove(userId: string, todoId: string): Promise<void> {
-    const row = await this.getOwnedRow(userId, todoId);
+  async remove(userId: string, todoId: string, scope?: TokenProjectScope | null): Promise<void> {
+    const row = await this.getOwnedRow(userId, todoId, scope);
     await this.reminderSvc.cancelForTodo(todoId);
     await enqueueTodoSync(this.ctx, row, 'delete');
     await this.ctx.db.delete(todos).where(and(eq(todos.id, todoId), eq(todos.ownerId, userId)));
   }
 
-  async getById(userId: string, todoId: string): Promise<Todo> {
+  async getById(userId: string, todoId: string, scope?: TokenProjectScope | null): Promise<Todo> {
     const rows = await this.ctx.db
       .select({ todo: todos, projectName: projects.name })
       .from(todos)
       .leftJoin(projects, eq(todos.projectId, projects.id))
-      .where(and(eq(todos.id, todoId), eq(todos.ownerId, userId)))
+      .where(and(eq(todos.id, todoId), eq(todos.ownerId, userId), scopeWhere(scope)))
       .limit(1);
     const r = rows[0];
     if (!r) throw new UserFacingError('todo not found');
     return serializeTodo(r.todo, r.projectName ? { name: r.projectName } : null);
   }
 
-  async list(userId: string, query: ListTodosQuery): Promise<Todo[]> {
+  async list(
+    userId: string,
+    query: ListTodosQuery,
+    scope?: TokenProjectScope | null,
+  ): Promise<Todo[]> {
     const conditions: SQL[] = [eq(todos.ownerId, userId)];
+    const scoped = scopeWhere(scope);
+    if (scoped) conditions.push(scoped);
     if (query.status) conditions.push(eq(todos.status, query.status));
     if (query.source) conditions.push(eq(todos.source, query.source));
     if (query.dueBefore) conditions.push(lt(todos.dueAt, new Date(query.dueBefore)));
@@ -283,9 +320,9 @@ export class TodoService {
     await enqueueTodoSync(this.ctx, next, 'create');
   }
 
-  private async getOwnedRow(userId: string, todoId: string) {
+  private async getOwnedRow(userId: string, todoId: string, scope?: TokenProjectScope | null) {
     const row = await this.ctx.db.query.todos.findFirst({
-      where: and(eq(todos.id, todoId), eq(todos.ownerId, userId)),
+      where: and(eq(todos.id, todoId), eq(todos.ownerId, userId), scopeWhere(scope)),
     });
     if (!row) throw new UserFacingError('todo not found');
     return row;

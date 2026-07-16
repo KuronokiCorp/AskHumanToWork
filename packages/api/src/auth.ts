@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { agentTokens } from '@askhumantowork/db';
 import { hashToken } from '@askhumantowork/core';
 import type { TokenScope } from '@askhumantowork/shared';
-import type { AppContext } from '@askhumantowork/core';
+import type { AppContext, TokenProjectScope } from '@askhumantowork/core';
 
 declare module 'fastify' {
   interface Session {
@@ -19,6 +19,19 @@ export interface AuthInfo {
   via: 'session' | 'token';
   scopes: TokenScope[] | null; // null = full access (session)
   agentName?: string;
+  tokenKind?: string; // 'pat' | 'device' (token auth only)
+  tokenProjectId?: string | null; // project this token is scoped to (pat only)
+}
+
+/**
+ * The project-scope constraint for a request, or null when unscoped.
+ * Only default (pat) tokens bound to a project are constrained; web sessions
+ * and device tokens see the full account.
+ */
+export function tokenProjectScope(auth: AuthInfo | undefined): TokenProjectScope | null {
+  if (!auth || auth.via !== 'token' || auth.tokenKind !== 'pat') return null;
+  if (!auth.tokenProjectId) return null;
+  return { projectId: auth.tokenProjectId, tokenName: auth.agentName ?? '' };
 }
 
 const ALL_SCOPES: TokenScope[] = ['todos:read', 'todos:write', 'projects:read', 'integrations:read'];
@@ -39,6 +52,8 @@ export async function resolveBearer(ctx: AppContext, raw: string): Promise<AuthI
     via: 'token',
     scopes: row.kind === 'device' ? ALL_SCOPES : (row.scopes as TokenScope[]),
     agentName: row.name,
+    tokenKind: row.kind,
+    tokenProjectId: row.projectId ?? null,
   };
 }
 

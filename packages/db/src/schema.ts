@@ -123,6 +123,10 @@ export const agentTokens = pgTable(
     name: text('name').notNull(),
     tokenHash: text('token_hash').notNull().unique(),
     scopes: text('scopes').array().notNull(),
+    // Optional project this token is scoped to. When set, a default (pat) token
+    // may only see/manipulate todos in this project or ones it created itself.
+    // null = full-account access.
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
     // 'pat' for MCP/API tokens, 'device' for mobile login tokens
     kind: text('kind').notNull().default('pat'),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),

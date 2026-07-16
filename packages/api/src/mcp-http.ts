@@ -7,6 +7,7 @@ import {
   TodoService,
   adapters,
   type AppContext,
+  type TokenProjectScope,
 } from '@askhumantowork/core';
 import {
   formatInTimezone,
@@ -17,7 +18,7 @@ import {
 } from '@askhumantowork/shared';
 import { eq } from 'drizzle-orm';
 import { integrations, users } from '@askhumantowork/db';
-import { resolveBearer } from './auth.js';
+import { resolveBearer, tokenProjectScope } from './auth.js';
 import { env } from './env.js';
 
 /** In-process TodoClient: MCP tools call core services directly. */
@@ -30,6 +31,7 @@ class CoreTodoClient implements TodoClient {
     private ctx: AppContext,
     private userId: string,
     private agent: string,
+    private scope: TokenProjectScope | null = null,
   ) {
     this.todoSvc = new TodoService(ctx);
     this.agendaSvc = new AgendaService(ctx);
@@ -46,32 +48,33 @@ class CoreTodoClient implements TodoClient {
 
   async addTodo(input: CreateTodoInput) {
     // `this.agent` here is the API token's name — the authoritative "which device/app".
-    const result = await this.todoSvc.create(this.userId, input, {
-      source: 'ai',
-      agent: this.agent,
-      tokenName: this.agent,
-    });
+    const result = await this.todoSvc.create(
+      this.userId,
+      input,
+      { source: 'ai', agent: this.agent, tokenName: this.agent },
+      this.scope,
+    );
     return { todo: result.todo, deduplicated: result.deduplicated, sync: result.sync };
   }
 
   async listTodos(query: Partial<ListTodosQuery>) {
-    return this.todoSvc.list(this.userId, { limit: 50, offset: 0, ...query });
+    return this.todoSvc.list(this.userId, { limit: 50, offset: 0, ...query }, this.scope);
   }
 
   async getTodo(id: string) {
-    return this.todoSvc.getById(this.userId, id);
+    return this.todoSvc.getById(this.userId, id, this.scope);
   }
 
   async updateTodo(id: string, input: UpdateTodoInput) {
-    return this.todoSvc.update(this.userId, id, input);
+    return this.todoSvc.update(this.userId, id, input, this.scope);
   }
 
   async completeTodo(id: string) {
-    return this.todoSvc.complete(this.userId, id);
+    return this.todoSvc.complete(this.userId, id, this.scope);
   }
 
   async getAgenda() {
-    return this.agendaSvc.forUser(this.userId);
+    return this.agendaSvc.forUser(this.userId, this.scope);
   }
 
   async listProjects() {
@@ -133,7 +136,12 @@ export function registerMcpHttp(app: FastifyInstance, ctx: AppContext) {
       });
     }
 
-    const client = new CoreTodoClient(ctx, auth.userId, auth.agentName ?? 'mcp-http');
+    const client = new CoreTodoClient(
+      ctx,
+      auth.userId,
+      auth.agentName ?? 'mcp-http',
+      tokenProjectScope(auth),
+    );
     const server = createTodoMcpServer(client);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless
