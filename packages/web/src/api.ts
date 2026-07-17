@@ -92,7 +92,8 @@ export const api = {
 
   // projects
   projects: () => call<{ projects: Project[] }>('GET', '/api/projects'),
-  createProject: (name: string, color?: string) => call('POST', '/api/projects', { name, color }),
+  createProject: (name: string, color?: string) =>
+    call<{ project: Project }>('POST', '/api/projects', { name, color }),
 
   // tokens
   tokens: () => call<{ tokens: TokenRow[] }>('GET', '/api/tokens'),

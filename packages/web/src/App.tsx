@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Landing from './pages/Landing';
 import ResetPassword from './pages/ResetPassword';
 import TodosView from './pages/TodosView';
+import AgendaView from './pages/AgendaView';
 import TodoDetail from './pages/TodoDetail';
 import SettingsTokens from './pages/SettingsTokens';
 import SettingsIntegrations from './pages/SettingsIntegrations';
@@ -122,7 +123,7 @@ export default function App() {
           {/* Signed in but still on the marketing/login paths → go to the app. */}
           <Route path="/login" element={<Navigate to="/agenda" replace />} />
           <Route path="/landing" element={<Navigate to="/agenda" replace />} />
-          <Route path="/agenda" element={<TodosView view="agenda" />} />
+          <Route path="/agenda" element={<AgendaView />} />
           {/* Old time views now live inside Agenda; redirect for bookmarks + digest email links */}
           <Route path="/today" element={<Navigate to="/agenda" replace />} />
           <Route path="/upcoming" element={<Navigate to="/agenda" replace />} />

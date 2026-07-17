@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:3000',
+      // E2E runs point this at the test API instance (see playwright.config.ts).
+      '/api': process.env.VITE_API_PROXY ?? 'http://localhost:3000',
     },
   },
 });

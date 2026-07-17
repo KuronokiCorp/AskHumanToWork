@@ -10,16 +10,27 @@ export default function SettingsTokens() {
   const tokens = useQuery({ queryKey: ['tokens'], queryFn: api.tokens });
   const projects = useQuery({ queryKey: ['projects'], queryFn: api.projects });
   const [name, setName] = useState('');
-  const [projectId, setProjectId] = useState<string>(''); // '' = all projects (full access)
+  // '' = admin (full access) · '__new__' = create a project inline · else a project id
+  const [projectId, setProjectId] = useState<string>('');
+  const [newProjectName, setNewProjectName] = useState('');
   const [created, setCreated] = useState<{ token: string; mcpConfig: unknown } | null>(null);
 
   const create = useMutation({
-    mutationFn: () => api.createToken(name || 'my-agent', [...TOKEN_SCOPES], projectId || null),
+    mutationFn: async () => {
+      let pid: string | null = projectId || null;
+      if (projectId === '__new__') {
+        const res = await api.createProject(newProjectName.trim());
+        pid = res.project.id;
+      }
+      return api.createToken(name || 'my-agent', [...TOKEN_SCOPES], pid);
+    },
     onSuccess: (data) => {
       setCreated(data);
       setName('');
       setProjectId('');
+      setNewProjectName('');
       void qc.invalidateQueries({ queryKey: ['tokens'] });
+      void qc.invalidateQueries({ queryKey: ['projects'] });
     },
   });
   const del = useMutation({
@@ -51,22 +62,37 @@ export default function SettingsTokens() {
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
           className={`${inputCls} shrink-0`}
-          title="Scope this token to a project (or leave as full access)"
+          title="Scope this token: admin (everything) or a single project"
         >
-          <option value="">All projects (full access)</option>
+          <option value="">Admin — full access</option>
           {(projects.data?.projects ?? []).map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
+          <option value="__new__">+ New project…</option>
         </select>
-        <Button type="submit" className="shrink-0">
+        {projectId === '__new__' && (
+          <input
+            autoFocus
+            required
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            placeholder="New project name"
+            className={`${inputCls} shrink-0 sm:max-w-[200px]`}
+          />
+        )}
+        <Button
+          type="submit"
+          className="shrink-0"
+          disabled={create.isPending || (projectId === '__new__' && !newProjectName.trim())}
+        >
           Create token
         </Button>
       </form>
       <p className="-mt-3 mb-5 text-xs text-zinc-400">
-        Scoping a token to a project limits it to that project&apos;s todos plus ones it creates
-        itself. Full-access tokens can see everything.
+        Admin tokens see everything. Project tokens only see that project&apos;s todos plus the
+        ones they create themselves.
       </p>
 
       {created && (
@@ -102,7 +128,7 @@ Header: Authorization: Bearer ${created.token}`}
               <div className="flex items-center gap-2 text-sm font-medium">
                 {t.name}
                 <Chip>{t.kind}</Chip>
-                <Chip>{t.projectName ? `project: ${t.projectName}` : 'all projects'}</Chip>
+                <Chip>{t.projectName ? `project: ${t.projectName}` : 'admin'}</Chip>
               </div>
               <div className="mt-0.5 truncate text-xs text-zinc-400">
                 {t.scopes.join(', ')} · last used {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleString() : 'never'}

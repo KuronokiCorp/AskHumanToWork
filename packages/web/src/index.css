@@ -3,12 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Marketing hero faces — applied only inside the landing page, not globally. */
-  --font-heading: 'HelveticaNowDisplay-Medium', 'Helvetica Neue', Arial, sans-serif;
-  --font-body: 'HelveticaNowDisplayW01-Rg', 'Helvetica Neue', Arial, sans-serif;
-}
-
 body {
   @apply bg-zinc-100/70 font-sans text-zinc-900 antialiased;
   font-feature-settings: 'liga' 1, 'calt' 1;

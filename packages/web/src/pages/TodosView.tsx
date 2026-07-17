@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Bot, CalendarDays, CalendarRange, Flame, Inbox, Search, Sparkles, X } from 'lucide-react';
+import { Bot, Inbox, Search, X } from 'lucide-react';
 import type { Todo } from '@askhumantowork/shared';
 import { api } from '../api';
 import QuickAdd from '../components/QuickAdd';
@@ -18,10 +18,9 @@ function useDebounced<T>(value: T, ms: number): T {
   return debounced;
 }
 
-type View = 'agenda' | 'ai' | 'all' | 'project';
+type View = 'ai' | 'all' | 'project';
 
 const titles: Record<View, string> = {
-  agenda: 'Agenda',
   ai: 'AI Inbox',
   all: 'All todos',
   project: 'Project',
@@ -29,35 +28,8 @@ const titles: Record<View, string> = {
 
 const open = (t: Todo) => t.status === 'open' || t.status === 'doing';
 
-/** A titled section of the Agenda view (Overdue / Today / This week). */
-function AgendaSection({
-  icon,
-  label,
-  tone,
-  todos,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  tone: 'red' | 'zinc' | 'violet';
-  todos: Todo[];
-}) {
-  if (todos.length === 0) return null;
-  const labelTone = tone === 'red' ? 'text-red-600' : tone === 'violet' ? 'text-violet-600' : 'text-zinc-500';
-  return (
-    <div className="mb-6">
-      <div className={`mb-2 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-wider ${labelTone}`}>
-        {icon}
-        {label}
-        <span className="text-zinc-400">· {todos.length}</span>
-      </div>
-      <div className="flex flex-col gap-2">
-        {todos.map((t) => (
-          <TodoItem key={t.id} todo={t} />
-        ))}
-      </div>
-    </div>
-  );
-}
+/** Poll cadence so remote changes (agents adding todos over MCP) appear live. */
+const SYNC_INTERVAL_MS = 15_000;
 
 export default function TodosView({ view }: { view: View }) {
   const { name } = useParams();
@@ -66,7 +38,6 @@ export default function TodosView({ view }: { view: View }) {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounced(search, 250);
 
-  const agenda = useQuery({ queryKey: ['agenda'], queryFn: api.agenda, enabled: view === 'agenda' });
   const listQuery = useQuery({
     queryKey: ['todos', view, name, debouncedSearch, tag],
     queryFn: () => {
@@ -74,69 +45,12 @@ export default function TodosView({ view }: { view: View }) {
       if (debouncedSearch.trim()) extra.search = debouncedSearch.trim();
       if (tag) extra.tags = tag;
       if (view === 'ai') return api.todos({ source: 'ai', limit: '100', ...extra });
-      if (view === 'all') return api.todos({ limit: '200', ...extra });
       if (view === 'project') return api.todos({ project: name ?? '', limit: '200', ...extra });
-      return Promise.resolve({ todos: [] });
+      return api.todos({ limit: '200', ...extra });
     },
-    enabled: view === 'ai' || view === 'all' || view === 'project',
+    refetchInterval: SYNC_INTERVAL_MS,
+    refetchOnWindowFocus: true,
   });
-
-  const dateLine = new Date().toLocaleDateString([], {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  // ---- Combined Agenda view: Overdue → Today → This week, as sections ----
-  if (view === 'agenda') {
-    const overdue = (agenda.data?.overdue ?? []).filter(open);
-    const today = (agenda.data?.today ?? []).filter(open);
-    const upcoming = (agenda.data?.upcoming ?? []).filter(open);
-    const doneToday = (agenda.data?.today ?? []).filter((t) => t.status === 'done');
-    const totalOpen = overdue.length + today.length + upcoming.length;
-
-    return (
-      <div className="mx-auto max-w-[720px] px-8 py-10 animate-fade-in">
-        <PageHeader title="Agenda" subtitle={`${dateLine} — ${agenda.data?.summary ?? ''}`} />
-        <QuickAdd />
-
-        {agenda.isLoading ? (
-          <div className="space-y-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-[68px] animate-pulse rounded-2xl bg-zinc-200/50" />
-            ))}
-          </div>
-        ) : totalOpen === 0 && doneToday.length === 0 ? (
-          <EmptyState
-            icon={<Sparkles size={22} />}
-            title="Nothing on your plate"
-            hint="You're all caught up — enjoy the calm, or add something above."
-          />
-        ) : (
-          <>
-            <AgendaSection icon={<Flame size={13} strokeWidth={2.5} />} label="Overdue" tone="red" todos={overdue} />
-            <AgendaSection icon={<CalendarDays size={13} strokeWidth={2.5} />} label="Today" tone="zinc" todos={today} />
-            <AgendaSection icon={<CalendarRange size={13} strokeWidth={2.5} />} label="This week" tone="violet" todos={upcoming} />
-            {doneToday.length > 0 && (
-              <div className="mt-1">
-                <div className="mb-2 flex items-center gap-3 px-1">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Done today · {doneToday.length}
-                  </span>
-                  <span className="h-px flex-1 bg-zinc-200" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  {doneToday.map((t) => (
-                    <TodoItem key={t.id} todo={t} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    );
-  }
 
   // ---- List views: AI Inbox / All todos / Project ----
   const todos = listQuery.data?.todos ?? [];

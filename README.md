@@ -210,6 +210,11 @@ Web = cookie sessions. Mobile = long-lived device tokens (`POST /api/auth/login`
 `mode:"token"`). AI agents = scoped Personal Access Tokens (`todos:read/write`, `projects:read`,
 `integrations:read`) created in Settings → API tokens.
 
+PATs can additionally be **project-scoped**: pick a project (or create one inline) when minting
+the token, and that token only sees/edits todos in its project plus ones it created itself —
+give each agent its own sandbox. Tokens without a project (“Admin — full access”) and web
+sessions see everything; device tokens are always full-access.
+
 ## Plans
 
 Everything is free except third-party sync (Pro). Gating is enforced server-side (connect → HTTP
@@ -243,6 +248,7 @@ Ships only `dist/` with two runtime deps; `prepublishOnly` builds automatically.
 
 ```bash
 pnpm typecheck && pnpm test        # TS packages (incl. date-resolution unit tests)
+cd packages/web && pnpm test:e2e   # Playwright: landing + agenda + tokens (boots API on askhumantowork_e2e)
 cd mobile && flutter analyze       # Flutter
 ```
 
