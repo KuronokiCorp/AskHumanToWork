@@ -109,7 +109,7 @@ export default function TodoItem({ todo }: { todo: Todo }) {
         </div>
 
         {todo.source === 'ai' && todo.originContext && (
-          <div className="mt-1.5 border-l-2 border-violet-200 pl-2 text-[12px] italic leading-snug text-violet-500/90">
+          <div className="mt-1.5 border-l-2 border-zinc-200 pl-2 text-[12px] leading-snug text-zinc-500">
             {todo.originContext}
           </div>
         )}

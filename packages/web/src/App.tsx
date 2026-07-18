@@ -76,7 +76,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="fixed inset-y-0 flex w-[232px] flex-col gap-0.5 bg-zinc-950 p-3">
+      <aside className="fixed inset-y-0 flex w-[232px] flex-col gap-0.5 overflow-y-auto bg-zinc-950 p-3">
         <div className="mb-4 flex items-center gap-2.5 px-2 pt-1.5">
           <Logo size={28} />
           <div className="leading-tight">
