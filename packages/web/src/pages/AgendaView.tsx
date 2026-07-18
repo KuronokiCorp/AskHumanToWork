@@ -19,11 +19,6 @@ import { EmptyState, PageHeader } from '../components/ui';
 /** How often the web checks the server for remote changes (agents adding todos). */
 const SYNC_INTERVAL_MS = 15_000;
 
-/** Max entry rows per day cell before collapsing into "+N more". */
-const MAX_CELL_ENTRIES = 3;
-
-const FALLBACK_DOT = '#a1a1aa'; // zinc-400 — projects without a color
-
 const isOpen = (t: Todo) => t.status === 'open' || t.status === 'doing';
 
 /** Local-timezone day key, e.g. "2026-07-17". */
@@ -75,49 +70,20 @@ function Section({
 /** A todo occupying a calendar day: on its due day, or in flight (created → due). */
 type DayItem = { todo: Todo; isDue: boolean };
 
-/** One todo title inside a calendar day cell — Google Calendar style entry. */
-function CellEntry({
-  todo,
-  color,
-  overdue,
-  isDue,
-}: {
-  todo: Todo;
-  color: string;
-  overdue: boolean;
-  isDue: boolean;
-}) {
-  const time = todo.dueAt
-    ? new Date(todo.dueAt).toLocaleString([], {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : '';
-  return (
-    <Link
-      to={`/t/${todo.id}`}
-      onClick={(e) => e.stopPropagation()}
-      title={`due ${time} — ${todo.title}`}
-      className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-[3px] text-[11.5px] leading-tight transition-colors hover:bg-zinc-100"
-    >
-      <span
-        className="h-[7px] w-[7px] shrink-0 rounded-[3px]"
-        style={{
-          background: overdue && isDue ? '#dc2626' : color,
-          opacity: isDue ? 1 : 0.4,
-        }}
-      />
-      <span
-        className={`truncate ${
-          isDue ? (overdue ? 'font-medium text-red-600' : 'text-zinc-700') : 'text-zinc-400'
-        }`}
-      >
-        {todo.title}
-      </span>
-    </Link>
-  );
+/** A todo's scheduling window: assigned (created) → deadline (due). */
+type TodoSpan = { todo: Todo; start: Date; end: Date };
+
+const DAY_MS = 86_400_000;
+const BAR_H = 22; // vertical rhythm per bar lane (bar + gap)
+const BAR_TOP = 34; // space reserved above bars for the date number
+const MAX_LANES = 3; // bar rows per week before "+N more"
+
+/** Deterministic pleasant color for projects the user hasn't colored. */
+function autoColor(name: string | null | undefined): string {
+  if (!name) return '#71717a';
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return `hsl(${h}, 55%, 46%)`;
 }
 
 /**
@@ -127,14 +93,14 @@ function CellEntry({
 function BigMonthCalendar({
   cursor,
   onCursor,
-  byDay,
+  spans,
   projectColors,
   selected,
   onSelect,
 }: {
   cursor: Date;
   onCursor: (d: Date) => void;
-  byDay: Map<string, DayItem[]>;
+  spans: TodoSpan[];
   projectColors: Map<string, string>;
   selected: string | null;
   onSelect: (key: string | null) => void;
@@ -149,11 +115,6 @@ function BigMonthCalendar({
   start.setDate(first.getDate() - first.getDay());
   const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
   const weeks = Math.ceil((first.getDay() + daysInMonth) / 7);
-  const cells = Array.from({ length: weeks * 7 }, (_, i) => {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    return d;
-  });
 
   const navBtn = 'rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700';
 
@@ -196,58 +157,134 @@ function BigMonthCalendar({
         ))}
       </div>
 
-      <div className="grid grid-cols-7">
-        {cells.map((d, i) => {
-          const key = dayKey(d);
-          const inMonth = d.getMonth() === cursor.getMonth();
-          const items = byDay.get(key) ?? [];
-          const isToday = key === todayKey;
-          const isSelected = key === selected;
-          const hidden = items.length - MAX_CELL_ENTRIES;
-          return (
-            <div
-              key={key}
-              role="button"
-              tabIndex={0}
-              onClick={() => onSelect(isSelected ? null : key)}
-              onKeyDown={(e) => e.key === 'Enter' && onSelect(isSelected ? null : key)}
-              className={`flex min-h-[104px] cursor-pointer flex-col gap-0.5 border-zinc-100 p-1 pt-1.5 transition-colors ${
-                i % 7 !== 0 ? 'border-l' : ''
-              } ${i >= 7 ? 'border-t' : ''} ${
-                isSelected
-                  ? 'bg-violet-50/80 ring-2 ring-inset ring-violet-400'
-                  : inMonth
-                    ? 'bg-white hover:bg-zinc-50/70'
-                    : 'bg-zinc-50/50 hover:bg-zinc-50'
-              }`}
-            >
-              <span
-                className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[12px] ${
-                  isToday
-                    ? 'bg-violet-600 font-semibold text-white'
-                    : inMonth
-                      ? 'font-medium text-zinc-700'
-                      : 'text-zinc-300'
-                }`}
-              >
-                {d.getDate()}
-              </span>
-              {items.slice(0, MAX_CELL_ENTRIES).map(({ todo: t, isDue }) => (
-                <CellEntry
-                  key={t.id}
-                  todo={t}
-                  isDue={isDue}
-                  color={(t.projectName && projectColors.get(t.projectName)) || FALLBACK_DOT}
-                  overdue={!!t.dueAt && new Date(t.dueAt) < now}
-                />
-              ))}
-              {hidden > 0 && (
-                <span className="px-1.5 text-[11px] font-medium text-zinc-400">+{hidden} more</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {Array.from({ length: weeks }, (_, w) => {
+        const ws = new Date(start);
+        ws.setDate(start.getDate() + w * 7);
+        const we = new Date(ws);
+        we.setDate(ws.getDate() + 6);
+
+        // Segments of todo windows crossing this week, packed into lanes
+        // (Google Calendar style: first free row that has no overlap).
+        const segs = spans
+          .filter((s) => s.start <= we && s.end >= ws)
+          .map((s) => ({
+            ...s,
+            sCol: Math.max(0, Math.round((s.start.getTime() - ws.getTime()) / DAY_MS)),
+            eCol: Math.min(6, Math.round((s.end.getTime() - ws.getTime()) / DAY_MS)),
+            startsHere: s.start >= ws,
+            endsHere: s.end <= we,
+          }))
+          .sort((a, b) => a.sCol - b.sCol || b.eCol - b.sCol - (a.eCol - a.sCol));
+        const lanes: [number, number][][] = [];
+        const placed = segs.map((seg) => {
+          let lane = 0;
+          while ((lanes[lane] ?? []).some(([s, e]) => seg.sCol <= e && seg.eCol >= s)) lane++;
+          (lanes[lane] ??= []).push([seg.sCol, seg.eCol]);
+          return { ...seg, lane };
+        });
+        const hidden = Array(7).fill(0) as number[];
+        for (const p of placed)
+          if (p.lane >= MAX_LANES)
+            for (let c = p.sCol; c <= p.eCol; c++) hidden[c] = (hidden[c] ?? 0) + 1;
+
+        return (
+          <div
+            key={w}
+            className={`relative grid grid-cols-7 ${w > 0 ? 'border-t border-zinc-100' : ''}`}
+            style={{ minHeight: BAR_TOP + MAX_LANES * BAR_H + 24 }}
+          >
+            {Array.from({ length: 7 }, (_, c) => {
+              const d = new Date(ws);
+              d.setDate(ws.getDate() + c);
+              const key = dayKey(d);
+              const inMonth = d.getMonth() === cursor.getMonth();
+              const isToday = key === todayKey;
+              const isSelected = key === selected;
+              return (
+                <div
+                  key={key}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelect(isSelected ? null : key)}
+                  onKeyDown={(e) => e.key === 'Enter' && onSelect(isSelected ? null : key)}
+                  className={`relative cursor-pointer border-zinc-100 transition-colors ${
+                    c > 0 ? 'border-l' : ''
+                  } ${
+                    isSelected
+                      ? 'bg-violet-50/80 ring-2 ring-inset ring-violet-400'
+                      : inMonth
+                        ? 'bg-white hover:bg-zinc-50/70'
+                        : 'bg-zinc-50/50 hover:bg-zinc-50'
+                  }`}
+                >
+                  <span
+                    className={`absolute left-1/2 top-1.5 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full text-[12px] ${
+                      isToday
+                        ? 'bg-violet-600 font-semibold text-white'
+                        : inMonth
+                          ? 'font-medium text-zinc-700'
+                          : 'text-zinc-300'
+                    }`}
+                  >
+                    {d.getDate()}
+                  </span>
+                  {(hidden[c] ?? 0) > 0 && (
+                    <span className="absolute bottom-1 left-1.5 text-[10.5px] font-medium text-zinc-400">
+                      +{hidden[c]} more
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+
+            {placed
+              .filter((p) => p.lane < MAX_LANES)
+              .map((p) => {
+                const isOverdue = new Date(p.todo.dueAt!) < now;
+                const color = isOverdue
+                  ? '#dc2626'
+                  : (p.todo.projectName && projectColors.get(p.todo.projectName)) ||
+                    autoColor(p.todo.projectName);
+                const dueStr = new Date(p.todo.dueAt!).toLocaleString([], {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                });
+                const insetL = p.startsHere ? 3 : 0;
+                const insetR = p.endsHere ? 3 : 0;
+                return (
+                  <Link
+                    key={`${p.todo.id}-${w}`}
+                    to={`/t/${p.todo.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    title={`${p.todo.title} — assigned ${p.start.toLocaleDateString([], { month: 'short', day: 'numeric' })}, finish by ${dueStr}`}
+                    className={`absolute z-[5] flex items-center overflow-hidden px-1.5 text-[11px] font-medium leading-none text-white shadow-sm transition-[filter] hover:brightness-110 ${
+                      p.startsHere ? 'rounded-l-md' : ''
+                    } ${p.endsHere ? 'rounded-r-md' : ''}`}
+                    style={{
+                      left: `calc(${(p.sCol / 7) * 100}% + ${insetL}px)`,
+                      width: `calc(${((p.eCol - p.sCol + 1) / 7) * 100}% - ${insetL + insetR}px)`,
+                      top: BAR_TOP + p.lane * BAR_H,
+                      height: BAR_H - 4,
+                      background: color,
+                    }}
+                  >
+                    <span className="truncate">{p.todo.title}</span>
+                    {p.endsHere && (
+                      <span className="ml-auto shrink-0 pl-1.5 text-[10px] opacity-80">
+                        {new Date(p.todo.dueAt!).toLocaleTimeString([], {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -286,12 +323,13 @@ export default function AgendaView() {
     return m;
   }, [projectsQuery.data]);
 
-  const { overdue, undated, doneToday, byDay } = useMemo(() => {
+  const { overdue, undated, doneToday, byDay, spans } = useMemo(() => {
     const all = query.data?.todos ?? [];
     const open = all.filter(isOpen);
 
-    // A todo occupies every day from its creation to its due date (muted),
-    // with the due day itself rendered solid — like a multi-day event.
+    // Each dated todo is a scheduling window: assigned (created) → deadline.
+    // The calendar draws it as a continuous bar across those days.
+    const spans: TodoSpan[] = [];
     const byDay = new Map<string, DayItem[]>();
     for (const t of open) {
       if (!t.dueAt) continue;
@@ -302,6 +340,7 @@ export default function AgendaView() {
       let d = new Date(t.createdAt);
       if (Number.isNaN(d.getTime()) || d > end) d = new Date(end);
       d.setHours(0, 0, 0, 0);
+      spans.push({ todo: t, start: new Date(d), end });
       for (; d <= end; d.setDate(d.getDate() + 1)) {
         const k = dayKey(d);
         const item = { todo: t, isDue: k === dueK };
@@ -325,6 +364,7 @@ export default function AgendaView() {
         (t) => t.status === 'done' && t.completedAt && dayKey(new Date(t.completedAt)) === todayStr,
       ),
       byDay,
+      spans,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query.data, todayStr]);
@@ -359,14 +399,14 @@ export default function AgendaView() {
           <BigMonthCalendar
             cursor={cursor}
             onCursor={setCursor}
-            byDay={byDay}
+            spans={spans}
             projectColors={projectColors}
             selected={selectedDay}
             onSelect={selectDay}
           />
           <p className="mb-6 mt-2 px-1 text-[11px] leading-relaxed text-zinc-400">
-            Click a day to see its todos below · todos run from creation (faded) to due date
-            (solid, colored by project) · updates automatically when your agents add todos.
+            Each bar is a todo's working window — it starts the day it was assigned and ends at
+            its deadline (time shown on the bar) · red = overdue · click a day for details below.
           </p>
 
           {nothingAtAll ? (
