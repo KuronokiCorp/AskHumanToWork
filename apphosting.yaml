@@ -25,6 +25,16 @@ env:
   #   SESSION_SECRET / ENCRYPTION_KEY   random 32-byte base64
   # Later: SMTP_HOST/SMTP_PORT/SMTP_FROM (+ creds) for reminder emails,
   #        ANTHROPIC_API_KEY for Claude-written morning digests
+  #
+  # Per-todo AI assistant — deployed but dark until these exist. The panel
+  # hides itself and /api/usage reports billingEnabled:false without them.
+  #   MINIMAX_API_KEY     enables the assistant
+  #   STRIPE_SECRET_KEY   } enable overage past the free allowance; needs a
+  #   STRIPE_AI_PRICE_ID  } Billing Meter + metered price created first
+  #   STRIPE_WEBHOOK_SECRET
+  # Create each with `firebase apphosting:secrets:set NAME` BEFORE adding its
+  # `- variable:/secret:` pair below — a reference to a missing secret stops
+  # the backend from starting.
   - variable: DATABASE_URL
     secret: DATABASE_URL
   - variable: SESSION_SECRET
