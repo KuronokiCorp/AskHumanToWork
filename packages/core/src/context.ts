@@ -13,6 +13,8 @@ export const QUEUES = {
   cleanup: 'cleanup',
   /** Cron (hourly): morning digest for users whose local hour matches. */
   digest: 'digest',
+  /** Cron: push billable AI overage to Stripe's usage meter. */
+  billing: 'billing',
 } as const;
 
 export interface AppContext {

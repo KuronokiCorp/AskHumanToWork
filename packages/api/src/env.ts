@@ -22,6 +22,13 @@ export const env = {
     port: Number(process.env.SMTP_PORT ?? 1025),
     from: process.env.SMTP_FROM ?? 'reminders@askhumantowork.local',
   },
+  /** Per-todo AI assistant. Without a key the chat endpoints report unavailable. */
+  minimax: {
+    apiKey: process.env.MINIMAX_API_KEY ?? '',
+    /** Mainland-China accounts use https://api.minimaxi.com/v1 (separate key). */
+    baseUrl: process.env.MINIMAX_BASE_URL ?? 'https://api.minimax.io/v1',
+    model: process.env.MINIMAX_MODEL ?? 'MiniMax-M3',
+  },
   vapid: {
     publicKey: process.env.VAPID_PUBLIC_KEY ?? '',
     privateKey: process.env.VAPID_PRIVATE_KEY ?? '',

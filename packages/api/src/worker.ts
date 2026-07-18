@@ -9,9 +9,11 @@ import {
   createContext,
   QUEUES,
   ReminderService,
+  StripeBillingService,
   runInboundPollers,
   runSyncJob,
   signAction,
+  stripeConfigFromEnv,
   type AppContext,
 } from '@askhumantowork/core';
 import { env } from './env.js';
@@ -123,6 +125,21 @@ export async function registerWorkers(ctx: AppContext): Promise<void> {
     }
   });
   await ctx.boss.schedule(QUEUES.digest, '0 * * * *'); // hourly; per-user local hour matched in handler
+
+  // ---------- AI overage → Stripe ----------
+
+  // Reported out-of-band rather than inline with the chat request: Stripe
+  // processes meter events asynchronously anyway, and their availability must
+  // never determine whether a user's message goes through.
+  const stripeConfig = stripeConfigFromEnv();
+  if (stripeConfig) {
+    const billingSvc = new StripeBillingService(ctx, stripeConfig);
+    await ctx.boss.work(QUEUES.billing, async () => {
+      const { reported, skipped } = await billingSvc.reportPendingUsage();
+      if (reported || skipped) console.log(`[billing] reported ${reported}, skipped ${skipped}`);
+    });
+    await ctx.boss.schedule(QUEUES.billing, '*/15 * * * *'); // every 15 minutes
+  }
 
   // ---------- Housekeeping ----------
 

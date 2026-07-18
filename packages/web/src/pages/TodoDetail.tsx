@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AlarmClock, ArrowLeft, Bot, Check, Moon, Pencil, Repeat, RotateCcw, Sun, Trash2 } from 'lucide-react';
 import { api } from '../api';
 import { Button, Chip, inputCls } from '../components/ui';
+import TodoChat from '../components/TodoChat';
 
 export default function TodoDetail() {
   const { id } = useParams();
@@ -226,6 +227,8 @@ export default function TodoDetail() {
           </Button>
         </form>
       </div>
+
+      <TodoChat todoId={t.id} />
     </div>
   );
 }

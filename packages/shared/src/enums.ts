@@ -28,6 +28,17 @@ export type IntegrationStatus = (typeof INTEGRATION_STATUSES)[number];
 export const SYNC_STATUSES = ['synced', 'pending', 'conflict', 'error'] as const;
 export type SyncStatus = (typeof SYNC_STATUSES)[number];
 
+export const CHAT_ROLES = ['user', 'assistant'] as const;
+export type ChatRole = (typeof CHAT_ROLES)[number];
+
+/**
+ * AI billing state. 'none' = no card on file, so the user only gets the free
+ * monthly allowance; 'active' = card + metered overage subscription;
+ * 'past_due' = the last invoice failed, so overage is paused.
+ */
+export const BILLING_STATUSES = ['none', 'active', 'past_due'] as const;
+export type BillingStatus = (typeof BILLING_STATUSES)[number];
+
 export const TOKEN_SCOPES = [
   'todos:read',
   'todos:write',

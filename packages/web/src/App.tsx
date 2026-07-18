@@ -4,6 +4,7 @@ import {
   Bell,
   Bot,
   CalendarCheck,
+  CreditCard,
   KeyRound,
   LayoutList,
   LogOut,
@@ -22,6 +23,7 @@ import SettingsTokens from './pages/SettingsTokens';
 import SettingsIntegrations from './pages/SettingsIntegrations';
 import SettingsNotifications from './pages/SettingsNotifications';
 import SettingsAdmin from './pages/SettingsAdmin';
+import SettingsBilling from './pages/SettingsBilling';
 
 const nav = [
   { to: '/agenda', label: 'Agenda', Icon: CalendarCheck },
@@ -33,6 +35,7 @@ const settingsNav = [
   { to: '/settings/tokens', label: 'API tokens', Icon: KeyRound },
   { to: '/settings/integrations', label: 'Integrations', Icon: Plug },
   { to: '/settings/notifications', label: 'Notifications', Icon: Bell },
+  { to: '/settings/billing', label: 'Billing', Icon: CreditCard },
 ];
 
 function SideLink({ to, label, Icon }: { to: string; label: string; Icon: typeof Bell }) {
@@ -135,6 +138,7 @@ export default function App() {
           <Route path="/settings/tokens" element={<SettingsTokens />} />
           <Route path="/settings/integrations" element={<SettingsIntegrations />} />
           <Route path="/settings/notifications" element={<SettingsNotifications me={me.data!} />} />
+          <Route path="/settings/billing" element={<SettingsBilling />} />
           <Route path="/settings/admin" element={<SettingsAdmin />} />
         </Routes>
       </main>

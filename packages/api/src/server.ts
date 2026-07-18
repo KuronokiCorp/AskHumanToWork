@@ -17,6 +17,7 @@ import { registerAuthRoutes } from './routes/auth-routes.js';
 import { registerTodoRoutes } from './routes/todo-routes.js';
 import { registerTokenRoutes } from './routes/token-routes.js';
 import { registerIntegrationRoutes } from './routes/integration-routes.js';
+import { registerChatRoutes } from './routes/chat-routes.js';
 import { registerMcpHttp } from './mcp-http.js';
 import { requireAuth } from './auth.js';
 
@@ -69,6 +70,7 @@ export async function buildServer(ctx: AppContext) {
   registerTodoRoutes(app, ctx);
   registerTokenRoutes(app, ctx);
   registerIntegrationRoutes(app, ctx);
+  await registerChatRoutes(app, ctx);
   registerMcpHttp(app, ctx);
 
   // Production: serve the built web app from this process (single-container deploy).

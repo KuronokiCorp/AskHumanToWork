@@ -20,7 +20,8 @@
     "@askhumantowork/db": "workspace:*",
     "@askhumantowork/shared": "workspace:*",
     "drizzle-orm": "^0.38.3",
-    "pg-boss": "^12.26.0"
+    "pg-boss": "^12.26.0",
+    "stripe": "^22.3.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

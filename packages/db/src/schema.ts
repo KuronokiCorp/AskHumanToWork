@@ -24,6 +24,10 @@ export const syncStatusEnum = pgEnum('sync_status', ['synced', 'pending', 'confl
 export const syncDirectionEnum = pgEnum('sync_direction', ['outbound', 'inbound']);
 export const syncJobStatusEnum = pgEnum('sync_job_status', ['queued', 'running', 'done', 'failed']);
 export const planEnum = pgEnum('plan', ['free', 'pro']);
+export const chatRoleEnum = pgEnum('chat_role', ['user', 'assistant']);
+// AI billing state: 'none' = no card, only the free monthly allowance;
+// 'active' = card on file + metered overage subscription; 'past_due' = last invoice failed.
+export const billingStatusEnum = pgEnum('billing_status', ['none', 'active', 'past_due']);
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -37,8 +41,59 @@ export const users = pgTable('users', {
   isAdmin: boolean('is_admin').notNull().default(false),
   // Entitlements: third-party integrations (MS To Do / Google Tasks sync) are pro-only.
   plan: planEnum('plan').notNull().default('free'),
+  // --- AI feature billing (per-todo assistant, metered pay-as-you-go over a free tier) ---
+  stripeCustomerId: text('stripe_customer_id'),
+  // Subscription item on the metered "AI usage" price; usage is reported against it.
+  stripeSubscriptionItemId: text('stripe_subscription_item_id'),
+  billingStatus: billingStatusEnum('billing_status').notNull().default('none'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Per-todo AI assistant conversation. Loaded as history when the user reopens
+// a todo's chat; sent to the model as context on each new message.
+export const todoMessages = pgTable(
+  'todo_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    todoId: uuid('todo_id')
+      .notNull()
+      .references(() => todos.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: chatRoleEnum('role').notNull(),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('todo_messages_todo_idx').on(t.todoId, t.createdAt)],
+);
+
+// Usage ledger for the AI assistant — one row per model call. Source of truth
+// for "people can see their usage" and for the monthly free-tier meter.
+// priceMicros is the marked-up (billable) amount in micro-USD; costMicros is
+// our raw MiniMax cost. Both stored for transparency + margin reporting.
+export const aiUsageEvents = pgTable(
+  'ai_usage_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    todoId: uuid('todo_id').references(() => todos.id, { onDelete: 'set null' }),
+    model: text('model').notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    // our raw provider cost, and the marked-up amount billed to the user (micro-USD)
+    costMicros: integer('cost_micros').notNull().default(0),
+    priceMicros: integer('price_micros').notNull().default(0),
+    // micro-USD of this event that fell OUTSIDE the free tier (what Stripe is billed)
+    billedMicros: integer('billed_micros').notNull().default(0),
+    // true once reported to Stripe's meter (or n/a when billedMicros = 0)
+    reportedToStripe: boolean('reported_to_stripe').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('ai_usage_owner_idx').on(t.ownerId, t.createdAt)],
+);
 
 export const projects = pgTable(
   'projects',

@@ -5,6 +5,8 @@ import {
   REMINDER_CHANNELS,
   PROVIDERS,
   TOKEN_SCOPES,
+  CHAT_ROLES,
+  BILLING_STATUSES,
 } from './enums.js';
 
 // ---------- Entities (API wire shapes) ----------
@@ -156,6 +158,52 @@ export const agendaSchema = z.object({
   summary: z.string(),
 });
 export type Agenda = z.infer<typeof agendaSchema>;
+
+// ---------- Todo chat (per-todo AI assistant) ----------
+
+export const todoMessageSchema = z.object({
+  id: z.string().uuid(),
+  todoId: z.string().uuid(),
+  role: z.enum(CHAT_ROLES),
+  content: z.string(),
+  createdAt: z.string(),
+});
+export type TodoMessage = z.infer<typeof todoMessageSchema>;
+
+export const sendTodoMessageInputSchema = z.object({
+  content: z.string().min(1).max(4_000),
+});
+export type SendTodoMessageInput = z.infer<typeof sendTodoMessageInputSchema>;
+
+/**
+ * What one assistant turn cost. Amounts are micro-USD (1e-6 USD) so they stay
+ * exact integers — `billed` is the part that fell outside the free allowance.
+ */
+export const chatUsageSchema = z.object({
+  inputTokens: z.number().int(),
+  outputTokens: z.number().int(),
+  priceMicros: z.number().int(),
+  billedMicros: z.number().int(),
+});
+export type ChatUsage = z.infer<typeof chatUsageSchema>;
+
+/** Where the user stands against this month's free allowance. */
+export const usageSummarySchema = z.object({
+  /** First instant of the current billing month, ISO. */
+  periodStart: z.string(),
+  billingStatus: z.enum(BILLING_STATUSES),
+  freeAllowanceMicros: z.number().int(),
+  /** Total marked-up spend this period, free tier included. */
+  usedMicros: z.number().int(),
+  /** Remaining free allowance; 0 once the allowance is exhausted. */
+  remainingFreeMicros: z.number().int(),
+  /** Spend beyond the free tier this period — what Stripe is metered for. */
+  billedMicros: z.number().int(),
+  messageCount: z.number().int(),
+  /** True when the allowance is gone and no card is on file, so chat is paused. */
+  exhausted: z.boolean(),
+});
+export type UsageSummary = z.infer<typeof usageSummarySchema>;
 
 // ---------- Briefing ----------
 

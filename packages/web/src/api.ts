@@ -1,4 +1,4 @@
-import type { Agenda, Project, Todo } from '@askhumantowork/shared';
+import type { Agenda, ChatUsage, Project, Todo, TodoMessage, UsageSummary } from '@askhumantowork/shared';
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -89,6 +89,19 @@ export const api = {
   completeTodo: (id: string) => call<{ todo: Todo }>('POST', `/api/todos/${id}/complete`),
   snoozeTodo: (id: string, until: string) => call('POST', `/api/todos/${id}/snooze`, { until }),
   deleteTodo: (id: string) => call('DELETE', `/api/todos/${id}`),
+
+  // per-todo AI chat
+  todoMessages: (id: string) =>
+    call<{ messages: TodoMessage[] }>('GET', `/api/todos/${id}/messages`),
+  sendTodoMessage: (id: string, content: string) =>
+    call<{ message: TodoMessage; usage: ChatUsage }>('POST', `/api/todos/${id}/messages`, {
+      content,
+    }),
+
+  // billing
+  usage: () => call<{ usage: UsageSummary; billingEnabled: boolean }>('GET', '/api/usage'),
+  billingCheckout: () => call<{ url: string }>('POST', '/api/billing/checkout'),
+  billingPortal: () => call<{ url: string }>('POST', '/api/billing/portal'),
 
   // projects
   projects: () => call<{ projects: Project[] }>('GET', '/api/projects'),
