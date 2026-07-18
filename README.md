@@ -2,12 +2,21 @@
 
 **The todo hub where your AI asks *you* to work.**
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![npm: heyhuman-mcp](https://img.shields.io/npm/v/heyhuman-mcp?label=heyhuman-mcp)](https://www.npmjs.com/package/heyhuman-mcp)
+[![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)](https://nodejs.org)
+[![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20HTTP-8A63D2)](#mcp-surface)
+
 AI agents (Claude Desktop, Claude Code, any MCP client) capture todos into your list — with due
 dates and *provenance* ("why this exists") — and AskHumanToWork **reliably reminds you until they're
 done**. Optionally (Pro), todos mirror out to Microsoft To Do / Google Tasks so they appear where
 you already look.
 
 ![Today view](docs/images/web-today.png)
+
+**[Why](#why)** · **[Tutorial](#tutorial--zero-to-your-first-ai-captured-todo)** ·
+**[Architecture](#architecture)** · **[MCP surface](#mcp-surface)** · **[Auth](#auth-model)** ·
+**[Deploying](#deploying)** · **[Support](#support)**
 
 ## Why
 
@@ -19,13 +28,11 @@ Every AI-created todo shows **who** added it and **why**:
 
 ![AI Inbox with provenance](docs/images/ai-inbox.png)
 
-![Login](docs/images/login.png)
-
 ---
 
-# Tutorial — zero to your first AI-captured todo
+## Tutorial — zero to your first AI-captured todo
 
-## 0. Prerequisites
+### 0. Prerequisites
 
 - Node ≥ 20 and [pnpm](https://pnpm.io) (`npm i -g pnpm`)
 - PostgreSQL 16 and [Mailpit](https://mailpit.axllent.org) (local email catcher)
@@ -41,7 +48,7 @@ createdb askhumantowork
 
 (Prefer containers? `docker compose up -d` starts the same services.)
 
-## 1. Install & configure
+### 1. Install & configure
 
 ```bash
 git clone https://github.com/KuronokiCorp/AskHumanToWork.git && cd AskHumanToWork
@@ -53,7 +60,7 @@ cp .env.example .env
 #   VAPID keys      → run: npx web-push generate-vapid-keys   (for browser push; optional)
 ```
 
-## 2. Build, migrate, seed
+### 2. Build, migrate, seed
 
 ```bash
 pnpm build
@@ -69,7 +76,7 @@ Seeded demo data.
   MCP token: tfa_XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
-## 3. Run it (3 terminals)
+### 3. Run it (3 terminals)
 
 ```bash
 pnpm dev:api                                    # API on :3000, MCP endpoint at /mcp
@@ -80,7 +87,7 @@ pnpm dev:web                                    # web app on :5173
 Open http://localhost:5173 and sign in with the demo account. You'll see seeded todos, including
 AI-captured ones in the **AI Inbox**.
 
-## 4. Add your first todo (human style)
+### 4. Add your first todo (human style)
 
 In the quick-add box, natural language just works:
 
@@ -91,7 +98,7 @@ Ship the release notes @friday 5pm #Work !2
 `@…` = due date (resolved in *your* timezone, server-side) · `#…` = project (auto-created) ·
 `!1-3` = priority.
 
-## 5. Connect Claude — the main event
+### 5. Connect Claude — the main event
 
 ```bash
 claude mcp add heyhuman \
@@ -120,7 +127,7 @@ Also try:
 - The `/capture-followups` prompt → Claude scans the whole conversation and files every commitment
   as a todo.
 
-### Session briefing — agents pick up where things left off ⭐
+#### Session briefing — agents pick up where things left off ⭐
 
 Every agent session starts with `get_briefing`: the server diffs your list against **that token's
 previous check-in** and hands the agent everything it needs to continue the work instead of
@@ -137,7 +144,7 @@ starting cold:
 No extra bookkeeping: the "since" marker is simply the token's `lastUsedAt`, so each agent gets
 its own personal diff automatically.
 
-## 6. Watch a reminder fire
+### 6. Watch a reminder fire
 
 Reminders ladder automatically: **1 day before → 1 hour before → at due → daily overdue nudges**.
 To see one in 20 seconds:
@@ -152,7 +159,20 @@ Open the Mailpit UI at http://localhost:8025 — the reminder email arrives, inc
 provenance if an agent created the todo. (Enable browser push in Settings → Notifications for
 native notifications; quiet hours are respected.)
 
-## 7. Mobile app — HeyHuman (Flutter)
+### 7. Ask the assistant about a task
+
+Every todo has its own chat thread. The todo's fields — title, status, due date, priority, notes,
+blocked reason — are sent as standing context, so you can ask *"what's blocking this?"* without
+restating anything. Open any todo and use **Ask about this task**.
+
+Set `MINIMAX_API_KEY` in `.env` to enable it; without a key the endpoints return 503 and the panel
+hides itself, and the rest of the app is unaffected.
+
+Usage is free up to a monthly allowance ($1 of model spend), tracked per reply on
+**Settings → Billing**. Past the allowance the assistant pauses unless a card is on file — see
+[Plans & billing](#plans--billing).
+
+### 8. Mobile app — HeyHuman (Flutter)
 
 The mobile app ships as **HeyHuman** ("Your AI remembers. You get it done.") — every notification
 reads as your AI addressing you.
@@ -162,9 +182,10 @@ cd mobile && flutter run          # iOS simulator or Android emulator
 ```
 
 Sign in with the demo account. Same Today/Upcoming/Projects/AI Inbox views plus search and settings;
-server reminders are mirrored as local notifications; completing a todo on the phone syncs back instantly.
+server reminders are mirrored as local notifications; completing a todo on the phone syncs back
+instantly.
 
-## 8. Mirror to Microsoft To Do / Google Tasks (Pro)
+### 9. Mirror to Microsoft To Do / Google Tasks (Pro)
 
 Third-party sync is a **Pro-plan feature**. As the seeded admin you're already Pro; upgrade other
 users on **Settings → Admin**.
@@ -186,9 +207,9 @@ date-only due dates and no reminders — our reminder engine still covers you), 
 
 ---
 
-# Reference
+## Reference
 
-## Architecture
+### Architecture
 
 ```
 AI agents ──MCP (stdio / HTTP)──►┐
@@ -209,7 +230,7 @@ Flutter app ──REST──────────────►┘       │
 | `packages/web` | React web app (Vite + Tailwind + TanStack Query) |
 | `mobile/` | Flutter app (Riverpod + dio + local notifications) |
 
-## MCP surface
+### MCP surface
 
 **Tools:** `get_briefing` (session-start diff: completed/added since last check-in, blocked with
 reasons, ranked next steps) · `add_todo` (natural dates, `origin_context` provenance, idempotent,
@@ -218,12 +239,13 @@ reasons, ranked next steps) · `add_todo` (natural dates, `origin_context` prove
 `list_integrations` · `resolve_time`
 
 **Resources:** `todo://agenda/today` · `todo://agenda/overdue` · `todo://projects`
+
 **Prompts:** `capture-followups` · `review-my-todos`
 
 Remote clients can skip the local install entirely: Streamable HTTP MCP at `POST <server>/mcp`
 with `Authorization: Bearer <token>`.
 
-## Auth model
+### Auth model
 
 Web = cookie sessions. Mobile = long-lived device tokens (`POST /api/auth/login` with
 `mode:"token"`). AI agents = scoped Personal Access Tokens (`todos:read/write`, `projects:read`,
@@ -234,13 +256,25 @@ the token, and that token only sees/edits todos in its project plus ones it crea
 give each agent its own sandbox. Tokens without a project (“Admin — full access”) and web
 sessions see everything; device tokens are always full-access.
 
-## Plans
+### Plans & billing
 
-Everything is free except third-party sync (Pro). Gating is enforced server-side (connect → HTTP
-402, no outbound fan-out, inbound pollers skip). Until billing ships, admins set plans on the
-Admin page.
+Everything is free except third-party sync (**Pro**) and AI assistant usage beyond the free
+allowance. Pro gating is enforced server-side (connect → HTTP 402, no outbound fan-out, inbound
+pollers skip); admins set Pro plans on the Admin page.
 
-## Deploying
+AI usage is **pay-as-you-go over a monthly free allowance**, not a subscription:
+
+- Spend is tracked in micro-USD integers per reply and shown on **Settings → Billing**.
+- A charge that straddles the free-tier boundary is split exactly — part free, part billed.
+- Past the allowance the assistant pauses until a card is added; overage is metered to Stripe.
+- Requires `STRIPE_SECRET_KEY` + `STRIPE_AI_PRICE_ID`. Without them usage is simply capped at the
+  free allowance and no card can be added.
+
+Stripe uses **Billing Meters** (the legacy usage-records API was removed in Stripe's 2025-03-31
+version). We meter micro-USD rather than tokens, so the price is `unit_amount_decimal: '0.0001'` —
+1,000,000 units = $1.00. See `.env.example` for the full setup.
+
+### Deploying
 
 Single-image deploy — the API container also serves the built web app (`SERVE_WEB=true`) and runs
 migrations on start; a second container from the same image runs the reminder/sync worker:
@@ -253,9 +287,10 @@ docker compose --profile app up -d --build
 
 For a real host (Fly.io / Railway / a VPS): build the `Dockerfile`, provide `DATABASE_URL`,
 SMTP credentials, and set `COOKIE_SECURE=true` + `TRUST_PROXY=true` behind HTTPS.
-Sessions and the job queue live in Postgres (pg-boss), so multiple API instances are safe and no Redis is needed.
+Sessions and the job queue live in Postgres (pg-boss), so multiple API instances are safe and no
+Redis is needed.
 
-## Publishing the npm connector
+### Publishing the npm connector
 
 ```bash
 cd packages/mcp && npm login && pnpm publish
@@ -263,7 +298,7 @@ cd packages/mcp && npm login && pnpm publish
 
 Ships only `dist/` with two runtime deps; `prepublishOnly` builds automatically.
 
-## Tests
+### Tests
 
 ```bash
 pnpm typecheck && pnpm test        # TS packages (incl. date-resolution unit tests)
@@ -271,9 +306,11 @@ cd packages/web && pnpm test:e2e   # Playwright: landing + agenda + tokens (boot
 cd mobile && flutter analyze       # Flutter
 ```
 
-Core integration tests (dedup, recurrence, reminders, plan gating) run against real Postgres — locally `createdb askhumantowork_test` first. A scripted end-to-end regression (auth, todos, dedup, agenda, MCP both transports, reminder
-delivery/cancellation, plan gating) lives in the `feature-tester` agent charter at
-`.claude/agents/feature-tester.md` — Claude Code users can run it with "run the feature-tester".
+Core integration tests (dedup, recurrence, reminders, plan gating, AI chat + billing math) run
+against real Postgres — locally `createdb askhumantowork_test` first. A scripted end-to-end
+regression (auth, todos, dedup, agenda, MCP both transports, reminder delivery/cancellation, plan
+gating) lives in the `feature-tester` agent charter at `.claude/agents/feature-tester.md` — Claude
+Code users can run it with "run the feature-tester".
 
 ## Support
 
@@ -287,4 +324,8 @@ If AskHumanToWork saves you some follow-ups, you can buy me a coffee:
 
 Recurring todos · edit-in-place UI · web search & tag filters · notification action buttons ·
 FCM/APNs mobile push · morning AI digest · Graph webhooks (realtime inbound) · Todoist adapter ·
-Stripe billing · cloud deploy.
+self-serve Pro-plan checkout · streaming AI replies.
+
+## License
+
+[MIT](LICENSE) © KuronokiCorp
