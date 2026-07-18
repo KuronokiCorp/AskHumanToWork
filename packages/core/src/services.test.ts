@@ -110,6 +110,19 @@ describe('TodoService', () => {
     expect(b.todo.projectId).toBe(a.todo.projectId);
   });
 
+  it('creating a project with an existing name reuses (and revives) it instead of erroring', async () => {
+    const user = await makeUser();
+    const { ProjectService } = await import('./index.js');
+    const svc = new ProjectService(ctx);
+    const a = await svc.create(user.id, 'Dup Proj');
+    const b = await svc.create(user.id, 'Dup Proj');
+    expect(b!.id).toBe(a!.id);
+    await svc.archive(user.id, a!.id);
+    const c = await svc.create(user.id, 'Dup Proj');
+    expect(c!.id).toBe(a!.id);
+    expect(c!.archived).toBe(false);
+  });
+
   it('a project-scoped token sees only its project + todos it created', async () => {
     const user = await makeUser();
     const svc = new TodoService(ctx);

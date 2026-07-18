@@ -54,11 +54,20 @@ export class ProjectService {
   }
 
   async create(ownerId: string, name: string, color?: string) {
+    const trimmed = name.trim();
     const [row] = await this.ctx.db
       .insert(projects)
-      .values({ ownerId, name: name.trim(), color })
+      .values({ ownerId, name: trimmed, color })
+      .onConflictDoNothing()
       .returning();
-    return row;
+    if (row) return row;
+    // (ownerId, name) is unique — reuse the existing project, reviving it if archived
+    const [existing] = await this.ctx.db
+      .update(projects)
+      .set({ archived: false })
+      .where(and(eq(projects.ownerId, ownerId), eq(projects.name, trimmed)))
+      .returning();
+    return existing;
   }
 
   async archive(ownerId: string, id: string) {

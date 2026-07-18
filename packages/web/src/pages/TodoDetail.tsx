@@ -18,6 +18,8 @@ export default function TodoDetail() {
     void qc.invalidateQueries({ queryKey: ['todo', id] });
     void qc.invalidateQueries({ queryKey: ['todos'] });
     void qc.invalidateQueries({ queryKey: ['agenda'] });
+    // editing a todo's project field can create a brand-new project
+    void qc.invalidateQueries({ queryKey: ['projects'] });
   };
   const update = useMutation({
     mutationFn: (patch: Record<string, unknown>) => api.updateTodo(id!, patch),

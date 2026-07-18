@@ -61,6 +61,7 @@ export default function SettingsTokens() {
         <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
+          onFocus={() => void projects.refetch()}
           className={`${inputCls} shrink-0`}
           title="Scope this token: admin (everything) or a single project"
         >
@@ -90,7 +91,12 @@ export default function SettingsTokens() {
           Create token
         </Button>
       </form>
-      <p className="-mt-3 mb-5 text-xs text-zinc-400">
+      {create.isError && (
+        <p className="-mt-3 mb-2 text-xs text-red-600">
+          Couldn&apos;t create the token: {create.error instanceof Error ? create.error.message : 'unknown error'}
+        </p>
+      )}
+      <p className={`${create.isError ? '' : '-mt-3 '}mb-5 text-xs text-zinc-400`}>
         Admin tokens see everything. Project tokens only see that project&apos;s todos plus the
         ones they create themselves.
       </p>
