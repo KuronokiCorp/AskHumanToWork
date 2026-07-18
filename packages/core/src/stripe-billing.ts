@@ -47,11 +47,17 @@ export function stripeConfigFromEnv(): StripeConfig | null {
 export class StripeBillingService {
   private stripe: Stripe;
 
+  /**
+   * `stripeClient` is an injection seam for tests — the reporting and
+   * subscription-mapping logic is worth covering without a network round trip
+   * or live keys. Production passes nothing and gets a real client.
+   */
   constructor(
     private ctx: AppContext,
     private config: StripeConfig,
+    stripeClient?: Stripe,
   ) {
-    this.stripe = new Stripe(config.secretKey);
+    this.stripe = stripeClient ?? new Stripe(config.secretKey);
   }
 
   /** Get or create this user's Stripe customer, memoized on the user row. */
