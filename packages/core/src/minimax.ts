@@ -18,6 +18,9 @@ const DEFAULT_BASE_URL = 'https://api.minimax.io/v1';
 const DEFAULT_MODEL = 'MiniMax-M3';
 const DEFAULT_MAX_TOKENS = 1_024;
 
+/** Shown for any upstream failure; the specific reason goes to the server log. */
+const UNAVAILABLE = 'The assistant is temporarily unavailable. Please try again.';
+
 /**
  * Price per 1M tokens in micro-USD, per platform.minimax.io/docs/guides/pricing-paygo
  * (verified 2026-07-18): MiniMax-M3 at $0.30 in / $1.20 out / $0.06 cache read.
@@ -122,7 +125,8 @@ export class MiniMaxChatClient implements ChatModelClient {
     });
 
     if (!res.ok) {
-      throw new UserFacingError(`AI service unavailable (HTTP ${res.status})`);
+      console.error(`[minimax] HTTP ${res.status} from ${this.baseUrl}`);
+      throw new UserFacingError(UNAVAILABLE);
     }
 
     const body = (await res.json()) as MiniMaxResponse;
@@ -132,13 +136,18 @@ export class MiniMaxChatClient implements ChatModelClient {
     // HTTP status, is what actually catches errors.
     const status = body.base_resp?.status_code ?? 0;
     if (status !== 0) {
-      throw new UserFacingError(
-        `AI service error: ${body.base_resp?.status_msg ?? `status ${status}`}`,
-      );
+      // Logged, not surfaced: these are upstream/config problems ("carry the
+      // API secret key…", "unknown model") that the end user cannot act on,
+      // and echoing them leaks our provider's internals into the UI.
+      console.error(`[minimax] status ${status}: ${body.base_resp?.status_msg ?? ''}`);
+      throw new UserFacingError(UNAVAILABLE);
     }
 
     const content = body.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new UserFacingError('AI service returned an empty response');
+    if (!content) {
+      console.error('[minimax] empty completion');
+      throw new UserFacingError(UNAVAILABLE);
+    }
 
     const inputTokens = body.usage?.prompt_tokens ?? 0;
     const outputTokens = body.usage?.completion_tokens ?? 0;

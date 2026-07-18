@@ -108,10 +108,10 @@ export class TodoChatService {
       .where(eq(todoMessages.todoId, todoId))
       .orderBy(asc(todoMessages.createdAt));
 
-    await this.ctx.db
-      .insert(todoMessages)
-      .values({ todoId, ownerId: userId, role: 'user', content });
-
+    // The model call comes first, and nothing is written until it succeeds.
+    // Persisting the user turn up front would leave it orphaned when the call
+    // fails — visible in the thread with no reply, and replayed as context on
+    // every later turn, which both confuses the model and costs tokens.
     const completion = await this.model.complete({
       system: buildSystemPrompt(todo, projectName),
       messages: [
@@ -120,10 +120,14 @@ export class TodoChatService {
       ],
     });
 
-    const [assistantRow] = await this.ctx.db
-      .insert(todoMessages)
-      .values({ todoId, ownerId: userId, role: 'assistant', content: completion.content })
-      .returning();
+    const assistantRow = await this.ctx.db.transaction(async (tx) => {
+      await tx.insert(todoMessages).values({ todoId, ownerId: userId, role: 'user', content });
+      const [row] = await tx
+        .insert(todoMessages)
+        .values({ todoId, ownerId: userId, role: 'assistant', content: completion.content })
+        .returning();
+      return row;
+    });
 
     const usage = await this.recordUsage(userId, todoId, completion);
     return { message: serializeMessage(assistantRow!), usage };

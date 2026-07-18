@@ -190,6 +190,51 @@ describe('TodoChatService', () => {
     expect(await db.select().from(todoMessages)).toHaveLength(0);
   });
 
+  it('writes nothing when the model call fails', async () => {
+    const user = await makeUser();
+    const { todo } = await new TodoService(ctx).create(user.id, { title: 'Upstream down' });
+    const failing = {
+      async complete() {
+        throw new Error('upstream exploded');
+      },
+    };
+
+    await expect(new TodoChatService(ctx, failing).send(user.id, todo.id, 'hello')).rejects.toThrow(
+      /upstream exploded/,
+    );
+
+    // No orphaned user turn: it would render with no reply, and be replayed as
+    // context on every later turn.
+    expect(await db.select().from(todoMessages)).toHaveLength(0);
+    expect(await db.select().from(aiUsageEvents)).toHaveLength(0);
+  });
+
+  it('keeps the thread replayable after a failure', async () => {
+    const user = await makeUser();
+    const { todo } = await new TodoService(ctx).create(user.id, { title: 'Retry' });
+    const flaky = {
+      calls: 0,
+      async complete() {
+        flaky.calls++;
+        if (flaky.calls === 1) throw new Error('transient');
+        return {
+          content: 'Recovered.',
+          model: 'MiniMax-M3',
+          inputTokens: 10,
+          outputTokens: 5,
+          costMicros: 10,
+        };
+      },
+    };
+    const svc = new TodoChatService(ctx, flaky);
+
+    await expect(svc.send(user.id, todo.id, 'first try')).rejects.toThrow(/transient/);
+    await svc.send(user.id, todo.id, 'second try');
+
+    const history = await svc.list(user.id, todo.id);
+    expect(history.map((m) => m.content)).toEqual(['second try', 'Recovered.']);
+  });
+
   it("refuses to open another user's todo", async () => {
     const owner = await makeUser();
     const stranger = await makeUser();

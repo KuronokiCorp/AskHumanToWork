@@ -148,9 +148,11 @@ describe('MiniMaxChatClient', () => {
         base_resp: { status_code: 1004, status_msg: 'invalid api key' },
       })) as unknown as typeof fetch;
 
+    // The upstream reason is logged, not surfaced — the user can't act on it
+    // and it would leak the provider's internals into the UI.
     await expect(
       client(fetchImpl).complete({ system: 's', messages: [{ role: 'user', content: 'hi' }] }),
-    ).rejects.toThrow(/invalid api key/);
+    ).rejects.toThrow(/temporarily unavailable/);
   });
 
   it('throws a user-facing error on an HTTP failure', async () => {
@@ -169,6 +171,6 @@ describe('MiniMaxChatClient', () => {
 
     await expect(
       client(fetchImpl).complete({ system: 's', messages: [{ role: 'user', content: 'hi' }] }),
-    ).rejects.toThrow(/empty response/);
+    ).rejects.toThrow(/temporarily unavailable/);
   });
 });
