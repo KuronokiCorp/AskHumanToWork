@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -72,23 +72,48 @@ function Section({
   );
 }
 
+/** A todo occupying a calendar day: on its due day, or in flight (created → due). */
+type DayItem = { todo: Todo; isDue: boolean };
+
 /** One todo title inside a calendar day cell — Google Calendar style entry. */
-function CellEntry({ todo, color, overdue }: { todo: Todo; color: string; overdue: boolean }) {
+function CellEntry({
+  todo,
+  color,
+  overdue,
+  isDue,
+}: {
+  todo: Todo;
+  color: string;
+  overdue: boolean;
+  isDue: boolean;
+}) {
   const time = todo.dueAt
-    ? new Date(todo.dueAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    ? new Date(todo.dueAt).toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
     : '';
   return (
     <Link
       to={`/t/${todo.id}`}
       onClick={(e) => e.stopPropagation()}
-      title={`${time} — ${todo.title}`}
+      title={`due ${time} — ${todo.title}`}
       className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-[3px] text-[11.5px] leading-tight transition-colors hover:bg-zinc-100"
     >
       <span
         className="h-[7px] w-[7px] shrink-0 rounded-[3px]"
-        style={{ background: overdue ? '#dc2626' : color }}
+        style={{
+          background: overdue && isDue ? '#dc2626' : color,
+          opacity: isDue ? 1 : 0.4,
+        }}
       />
-      <span className={`truncate ${overdue ? 'font-medium text-red-600' : 'text-zinc-700'}`}>
+      <span
+        className={`truncate ${
+          isDue ? (overdue ? 'font-medium text-red-600' : 'text-zinc-700') : 'text-zinc-400'
+        }`}
+      >
         {todo.title}
       </span>
     </Link>
@@ -109,7 +134,7 @@ function BigMonthCalendar({
 }: {
   cursor: Date;
   onCursor: (d: Date) => void;
-  byDay: Map<string, Todo[]>;
+  byDay: Map<string, DayItem[]>;
   projectColors: Map<string, string>;
   selected: string | null;
   onSelect: (key: string | null) => void;
@@ -189,7 +214,11 @@ function BigMonthCalendar({
               className={`flex min-h-[104px] cursor-pointer flex-col gap-0.5 border-zinc-100 p-1 pt-1.5 transition-colors ${
                 i % 7 !== 0 ? 'border-l' : ''
               } ${i >= 7 ? 'border-t' : ''} ${
-                isSelected ? 'bg-violet-50/70' : inMonth ? 'bg-white hover:bg-zinc-50/70' : 'bg-zinc-50/50 hover:bg-zinc-50'
+                isSelected
+                  ? 'bg-violet-50/80 ring-2 ring-inset ring-violet-400'
+                  : inMonth
+                    ? 'bg-white hover:bg-zinc-50/70'
+                    : 'bg-zinc-50/50 hover:bg-zinc-50'
               }`}
             >
               <span
@@ -203,10 +232,11 @@ function BigMonthCalendar({
               >
                 {d.getDate()}
               </span>
-              {items.slice(0, MAX_CELL_ENTRIES).map((t) => (
+              {items.slice(0, MAX_CELL_ENTRIES).map(({ todo: t, isDue }) => (
                 <CellEntry
                   key={t.id}
                   todo={t}
+                  isDue={isDue}
                   color={(t.projectName && projectColors.get(t.projectName)) || FALLBACK_DOT}
                   overdue={!!t.dueAt && new Date(t.dueAt) < now}
                 />
@@ -225,6 +255,17 @@ function BigMonthCalendar({
 export default function AgendaView() {
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const dayListRef = useRef<HTMLDivElement>(null);
+
+  // Selecting a day scrolls its todo list into view — the list sits below
+  // the (tall) calendar, so without this a click looks like a no-op.
+  const selectDay = (key: string | null) => {
+    setSelectedDay(key);
+    if (key)
+      requestAnimationFrame(() =>
+        dayListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      );
+  };
 
   // Auto-sync: poll the server so remote changes (agents adding todos over
   // MCP) appear without a reload. React-query replaces by id — no duplicates.
@@ -249,16 +290,33 @@ export default function AgendaView() {
     const all = query.data?.todos ?? [];
     const open = all.filter(isOpen);
 
-    const byDay = new Map<string, Todo[]>();
+    // A todo occupies every day from its creation to its due date (muted),
+    // with the due day itself rendered solid — like a multi-day event.
+    const byDay = new Map<string, DayItem[]>();
     for (const t of open) {
       if (!t.dueAt) continue;
-      const k = dayKey(new Date(t.dueAt));
-      const list = byDay.get(k);
-      if (list) list.push(t);
-      else byDay.set(k, [t]);
+      const due = new Date(t.dueAt);
+      const dueK = dayKey(due);
+      const end = new Date(due);
+      end.setHours(0, 0, 0, 0);
+      let d = new Date(t.createdAt);
+      if (Number.isNaN(d.getTime()) || d > end) d = new Date(end);
+      d.setHours(0, 0, 0, 0);
+      for (; d <= end; d.setDate(d.getDate() + 1)) {
+        const k = dayKey(d);
+        const item = { todo: t, isDue: k === dueK };
+        const list = byDay.get(k);
+        if (list) list.push(item);
+        else byDay.set(k, [item]);
+      }
     }
+    // Due-that-day entries first, then in-flight ones, each by due time.
     for (const list of byDay.values())
-      list.sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime());
+      list.sort(
+        (a, b) =>
+          Number(b.isDue) - Number(a.isDue) ||
+          new Date(a.todo.dueAt!).getTime() - new Date(b.todo.dueAt!).getTime(),
+      );
 
     return {
       overdue: open.filter((t) => t.dueAt && new Date(t.dueAt) < now),
@@ -272,8 +330,9 @@ export default function AgendaView() {
   }, [query.data, todayStr]);
 
   // Day list shown under the calendar — the selected day, defaulting to today.
+  // Includes in-flight todos (created before, due later) so the list matches the cell.
   const focusDay = selectedDay ?? todayStr;
-  const focusTodos = byDay.get(focusDay) ?? [];
+  const focusTodos = (byDay.get(focusDay) ?? []).map((i) => i.todo);
   const focusLabel = new Date(`${focusDay}T12:00:00`).toLocaleDateString([], {
     weekday: 'long',
     month: 'long',
@@ -303,11 +362,11 @@ export default function AgendaView() {
             byDay={byDay}
             projectColors={projectColors}
             selected={selectedDay}
-            onSelect={setSelectedDay}
+            onSelect={selectDay}
           />
           <p className="mb-6 mt-2 px-1 text-[11px] leading-relaxed text-zinc-400">
-            Click a day to see its todos below · entries are colored by project · updates
-            automatically when your agents add todos.
+            Click a day to see its todos below · todos run from creation (faded) to due date
+            (solid, colored by project) · updates automatically when your agents add todos.
           </p>
 
           {nothingAtAll ? (
@@ -318,18 +377,28 @@ export default function AgendaView() {
             />
           ) : (
             <>
-              <Section
-                icon={<CalendarDays size={13} strokeWidth={2.5} />}
-                label={focusDay === todayStr ? `Today — ${focusLabel}` : focusLabel}
-                tone={focusDay === todayStr ? 'zinc' : 'violet'}
-                todos={focusTodos}
-                onClear={selectedDay ? () => setSelectedDay(null) : undefined}
-              />
-              {focusTodos.length === 0 && (
-                <p className="-mt-4 mb-6 px-1 text-[13px] text-zinc-400">
-                  Nothing due {focusDay === todayStr ? 'today' : `on ${focusLabel}`}.
-                </p>
-              )}
+              <div ref={dayListRef} className="scroll-mt-6">
+                <Section
+                  icon={<CalendarDays size={13} strokeWidth={2.5} />}
+                  label={focusDay === todayStr ? `Today — ${focusLabel}` : focusLabel}
+                  tone={focusDay === todayStr ? 'zinc' : 'violet'}
+                  todos={focusTodos}
+                  onClear={selectedDay ? () => setSelectedDay(null) : undefined}
+                />
+                {focusTodos.length === 0 && (
+                  <p className="mb-6 px-1 text-[13px] text-zinc-400">
+                    Nothing due {focusDay === todayStr ? 'today' : `on ${focusLabel}`}.
+                    {selectedDay && (
+                      <button
+                        onClick={() => setSelectedDay(null)}
+                        className="ml-2 font-medium text-violet-600 hover:underline"
+                      >
+                        Back to today
+                      </button>
+                    )}
+                  </p>
+                )}
+              </div>
               <Section icon={<Flame size={13} strokeWidth={2.5} />} label="Overdue" tone="red" todos={overdue} />
               <Section
                 icon={<CircleDashed size={13} strokeWidth={2.5} />}
