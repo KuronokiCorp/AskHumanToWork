@@ -3,7 +3,6 @@
 **The todo hub where your AI asks *you* to work.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![npm: heyhuman-mcp](https://img.shields.io/npm/v/heyhuman-mcp?label=heyhuman-mcp)](https://www.npmjs.com/package/heyhuman-mcp)
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20HTTP-8A63D2)](#mcp-surface)
 
