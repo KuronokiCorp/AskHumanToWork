@@ -247,6 +247,20 @@ export default function Landing() {
           </p>
         </div>
       </section>
+
+      <footer className="border-t border-zinc-200/70 px-5 py-8 sm:px-8 md:px-10">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
+          <p className="text-[12.5px] text-zinc-500">Built for people who work with AI every day.</p>
+          <a
+            href="https://buymeacoffee.com/kuronoki"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#ffdd00] px-3.5 py-2 text-[13px] font-semibold text-zinc-900 shadow-card transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <span aria-hidden>☕</span> Buy me a coffee
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -275,6 +275,14 @@ Core integration tests (dedup, recurrence, reminders, plan gating) run against r
 delivery/cancellation, plan gating) lives in the `feature-tester` agent charter at
 `.claude/agents/feature-tester.md` — Claude Code users can run it with "run the feature-tester".
 
+## Support
+
+If AskHumanToWork saves you some follow-ups, you can buy me a coffee:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/kuronoki)
+
+<img src="docs/images/buymeacoffee-qr.png" alt="Buy Me a Coffee QR code for buymeacoffee.com/kuronoki" width="180">
+
 ## Roadmap
 
 Recurring todos · edit-in-place UI · web search & tag filters · notification action buttons ·
