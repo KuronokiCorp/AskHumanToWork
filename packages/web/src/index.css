@@ -21,3 +21,46 @@ body {
     opacity: 0;
   }
 }
+
+/*
+ * Assistant replies are markdown. Tailwind's preflight resets list markers and
+ * heading sizes, so the rendered output needs its own scoped styles — kept
+ * tight because these bubbles sit inside a chat, not an article.
+ */
+.chat-md > :first-child {
+  margin-top: 0;
+}
+.chat-md > :last-child {
+  margin-bottom: 0;
+}
+.chat-md p,
+.chat-md ul,
+.chat-md ol {
+  @apply my-2;
+}
+.chat-md ul {
+  @apply list-disc space-y-1 pl-5;
+}
+.chat-md ol {
+  @apply list-decimal space-y-1 pl-5;
+}
+.chat-md strong {
+  @apply font-semibold text-zinc-900;
+}
+.chat-md a {
+  @apply font-medium text-violet-700 underline;
+}
+.chat-md code {
+  @apply rounded bg-zinc-200/70 px-1 py-0.5 text-[12.5px];
+}
+.chat-md pre {
+  @apply my-2 overflow-x-auto rounded-lg bg-zinc-800 p-3 text-[12.5px] text-zinc-100;
+}
+.chat-md pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.chat-md h1,
+.chat-md h2,
+.chat-md h3 {
+  @apply mb-1 mt-3 text-[13.5px] font-semibold text-zinc-900;
+}
