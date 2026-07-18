@@ -79,6 +79,14 @@ export function Chip({ children, tone = 'zinc', title }: { children: ReactNode; 
   );
 }
 
+/** Deterministic pleasant color for projects the user hasn't colored. */
+export function projectAutoColor(name: string | null | undefined): string {
+  if (!name) return '#71717a';
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return `hsl(${h}, 55%, 46%)`;
+}
+
 export function EmptyState({ icon, title, hint }: { icon: ReactNode; title: string; hint?: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white/50 px-8 py-14 text-center animate-fade-in">

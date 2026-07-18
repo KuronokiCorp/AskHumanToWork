@@ -43,6 +43,13 @@
       "when": 1784104119040,
       "tag": "0005_token_project_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784350000000,
+      "tag": "0006_blocked_status",
+      "breakpoints": true
     }
   ]
 }

@@ -203,6 +203,42 @@ describe('TodoService', () => {
   });
 });
 
+describe('AgendaService briefing', () => {
+  it('diffs completed/added since a marker, surfaces blocked with reason, ranks next steps', async () => {
+    const user = await makeUser();
+    const { AgendaService } = await import('./index.js');
+    const todoSvc = new TodoService(ctx);
+    const agendaSvc = new AgendaService(ctx);
+
+    // Before the marker: one todo that will be completed after it.
+    const done = await todoSvc.create(user.id, { title: 'Ship the fix' });
+    const marker = new Date();
+
+    const blocked = await todoSvc.create(user.id, { title: 'Publish app', dueNatural: 'in 3 days' });
+    await todoSvc.update(user.id, blocked.todo.id, {
+      status: 'blocked',
+      blockedReason: 'waiting for App Review',
+    });
+    const urgent = await todoSvc.create(user.id, { title: 'Renew cert', dueNatural: 'in 1 hour' });
+    await todoSvc.complete(user.id, done.todo.id);
+
+    const b = await agendaSvc.briefingForUser(user.id, null, marker);
+    expect(b.completedSinceLastSession.map((t) => t.title)).toEqual(['Ship the fix']);
+    expect(b.addedSinceLastSession.map((t) => t.title).sort()).toEqual(['Publish app', 'Renew cert']);
+    expect(b.blocked).toHaveLength(1);
+    expect(b.blocked[0]!.blockedReason).toBe('waiting for App Review');
+    // Blocked todos are excluded from nextSteps; the soonest-due open todo leads.
+    expect(b.nextSteps.map((t) => t.title)).toEqual(['Renew cert']);
+    expect(b.summary).toContain('1 completed');
+    expect(b.summary).toContain('1 blocked');
+
+    // Unblocking clears the reason automatically.
+    const reopened = await todoSvc.update(user.id, blocked.todo.id, { status: 'open' });
+    expect(reopened.blockedReason).toBeNull();
+    expect((await todoSvc.getById(user.id, urgent.todo.id)).status).toBe('open');
+  });
+});
+
 describe('ReminderService', () => {
   it('schedules the ladder for a future due date and cancels on complete', async () => {
     const user = await makeUser();

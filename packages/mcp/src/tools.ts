@@ -24,6 +24,7 @@ function compact(t: Todo) {
     source: t.source === 'ai' ? `ai (${t.createdByAgent ?? 'unknown'})` : 'human',
     originContext: t.originContext ?? undefined,
     repeats: t.recurrence?.display,
+    blockedReason: t.status === 'blocked' ? (t.blockedReason ?? 'no reason recorded') : undefined,
   };
 }
 
@@ -144,7 +145,10 @@ export function createTodoMcpServer(client: TodoClient): McpServer {
       project: z.string().max(100).optional(),
       priority: z.number().int().min(0).max(3).optional(),
       tags: z.array(z.string()).optional(),
-      status: z.enum(['open', 'doing', 'done', 'cancelled']).optional(),
+      status: z.enum(['open', 'doing', 'blocked', 'done', 'cancelled']).optional()
+        .describe('Set "blocked" (with blocked_reason) when work cannot proceed — it will be surfaced in every future briefing until unblocked.'),
+      blocked_reason: z.string().max(500).optional()
+        .describe('WHY the todo is blocked, e.g. "waiting for App Review verdict". Set together with status "blocked"; cleared automatically when the status changes.'),
       repeat: z.string().max(80).optional().describe('Set recurrence, e.g. "every friday"'),
       clear_repeat: z.boolean().optional().describe('Stop this todo from repeating'),
     },
@@ -159,6 +163,7 @@ export function createTodoMcpServer(client: TodoClient): McpServer {
           priority: args.priority as 0 | 1 | 2 | 3 | undefined,
           tags: args.tags,
           status: args.status,
+          blockedReason: args.blocked_reason,
           repeat: args.clear_repeat ? null : args.repeat,
         });
         return ok({ todo: compact(todo) });
@@ -191,9 +196,33 @@ export function createTodoMcpServer(client: TodoClient): McpServer {
   );
 
   server.tool(
+    'get_briefing',
+    'Call this FIRST, at the START of every session — before doing anything else with todos. ' +
+      'It diffs the list against your previous check-in: what the user COMPLETED since then ' +
+      '(acknowledge their progress), what was newly added, what is BLOCKED and why (offer to help ' +
+      'unblock), what is overdue, and nextSteps — the recommended order to start working. ' +
+      'Use it to pick up exactly where things left off instead of re-reading the whole list.',
+    {},
+    async () =>
+      run(async () => {
+        const b = await client.getBriefing();
+        return ok({
+          since: b.since,
+          timezone: b.timezone,
+          summary: b.summary,
+          completedSinceLastSession: b.completedSinceLastSession.map(compact),
+          addedSinceLastSession: b.addedSinceLastSession.map(compact),
+          blocked: b.blocked.map(compact),
+          overdue: b.overdue.map(compact),
+          nextSteps: b.nextSteps.map(compact),
+        });
+      }),
+  );
+
+  server.tool(
     'get_agenda',
     'The user\'s current agenda: overdue, due today, and next 7 days, in their timezone. ' +
-      'Call this at the START of a session to proactively surface what needs attention.',
+      'For session start prefer get_briefing — it also tells you what changed since your last visit.',
     {},
     async () =>
       run(async () => {

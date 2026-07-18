@@ -13,6 +13,7 @@ export function serializeTodo(row: TodoRow, project?: Pick<ProjectRow, 'name'> |
     notes: row.notes,
     dueAt: row.dueAt?.toISOString() ?? null,
     status: row.status,
+    blockedReason: row.blockedReason ?? null,
     priority: row.priority,
     source: row.source,
     createdByAgent: row.createdByAgent,

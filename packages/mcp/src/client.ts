@@ -1,5 +1,6 @@
 import type {
   Agenda,
+  Briefing,
   CreateTodoInput,
   ListTodosQuery,
   Project,
@@ -34,6 +35,7 @@ export interface TodoClient {
   updateTodo(id: string, input: UpdateTodoInput): Promise<Todo>;
   completeTodo(id: string): Promise<Todo>;
   getAgenda(): Promise<Agenda>;
+  getBriefing(): Promise<Briefing>;
   listProjects(): Promise<Project[]>;
   listIntegrations(): Promise<IntegrationInfo[]>;
   resolveTime(text: string): Promise<{ iso: string; display: string; timezone: string } | null>;

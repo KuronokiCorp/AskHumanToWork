@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Bot, Check, Clock, Flag, Hash, Repeat } from 'lucide-react';
+import { Ban, Bot, Check, Clock, Flag, Hash, Repeat } from 'lucide-react';
 import type { Todo } from '@askhumantowork/shared';
 import { api } from '../api';
 import { Chip } from './ui';
@@ -70,6 +70,12 @@ export default function TodoItem({ todo }: { todo: Todo }) {
             <Chip tone={due.overdue ? 'red' : 'zinc'}>
               <Clock size={11} strokeWidth={2.5} />
               {due.text}
+            </Chip>
+          )}
+          {todo.status === 'blocked' && (
+            <Chip tone="amber" title={todo.blockedReason ?? 'Blocked'}>
+              <Ban size={11} strokeWidth={2.5} />
+              blocked{todo.blockedReason ? `: ${todo.blockedReason}` : ''}
             </Chip>
           )}
           {todo.recurrence && (

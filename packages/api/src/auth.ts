@@ -21,6 +21,8 @@ export interface AuthInfo {
   agentName?: string;
   tokenKind?: string; // 'pat' | 'device' (token auth only)
   tokenProjectId?: string | null; // project this token is scoped to (pat only)
+  /** When this token was last used BEFORE this request — the "since your last session" marker. */
+  prevUsedAt?: Date | null;
 }
 
 /**
@@ -54,6 +56,7 @@ export async function resolveBearer(ctx: AppContext, raw: string): Promise<AuthI
     agentName: row.name,
     tokenKind: row.kind,
     tokenProjectId: row.projectId ?? null,
+    prevUsedAt: row.lastUsedAt ?? null,
   };
 }
 

@@ -1,6 +1,12 @@
 import { eq } from 'drizzle-orm';
 import { users } from '@askhumantowork/db';
-import { formatInTimezone, timezoneOffsetMinutes, type Agenda } from '@askhumantowork/shared';
+import {
+  formatInTimezone,
+  timezoneOffsetMinutes,
+  type Agenda,
+  type Briefing,
+  type Todo,
+} from '@askhumantowork/shared';
 import type { AppContext } from './context.js';
 import { TodoService, type TokenProjectScope } from './todo-service.js';
 
@@ -58,6 +64,68 @@ export class AgendaService {
       today,
       upcoming,
       summary,
+    };
+  }
+
+  /**
+   * Session-start diff for an agent: what the user completed and what was
+   * added since `since` (typically the token's previous use), what's blocked
+   * and why, what's overdue, and a ranked list of what to work on next.
+   */
+  async briefingForUser(
+    userId: string,
+    scope: TokenProjectScope | null | undefined,
+    since: Date | null,
+  ): Promise<Briefing> {
+    const user = await this.ctx.db.query.users.findFirst({ where: eq(users.id, userId) });
+    if (!user) throw new Error('user not found');
+
+    const all = await this.todoSvc.list(userId, { limit: 200, offset: 0 }, scope);
+    const now = new Date();
+    const actionable = all.filter((t) => t.status === 'open' || t.status === 'doing');
+
+    const completedSinceLastSession = since
+      ? all.filter(
+          (t) => t.status === 'done' && t.completedAt && new Date(t.completedAt) > since,
+        )
+      : [];
+    const addedSinceLastSession = since
+      ? all.filter((t) => t.status !== 'done' && t.status !== 'cancelled' && new Date(t.createdAt) > since)
+      : [];
+    const blocked = all.filter((t) => t.status === 'blocked');
+    const overdue = actionable.filter((t) => t.dueAt && new Date(t.dueAt) < now);
+
+    // Urgency ranking: overdue first (oldest due first), then by due date
+    // (undated last), then by priority.
+    const dueMs = (t: Todo) => (t.dueAt ? new Date(t.dueAt).getTime() : Number.POSITIVE_INFINITY);
+    const nextSteps = [...actionable]
+      .sort(
+        (a, b) =>
+          Number(dueMs(b) < now.getTime()) - Number(dueMs(a) < now.getTime()) ||
+          dueMs(a) - dueMs(b) ||
+          b.priority - a.priority,
+      )
+      .slice(0, 5);
+
+    const parts: string[] = [];
+    if (completedSinceLastSession.length)
+      parts.push(`${completedSinceLastSession.length} completed since your last check-in`);
+    if (addedSinceLastSession.length) parts.push(`${addedSinceLastSession.length} newly added`);
+    if (blocked.length) parts.push(`${blocked.length} blocked`);
+    if (overdue.length) parts.push(`${overdue.length} overdue`);
+    const head = parts.length ? parts.join(', ') + '.' : 'No changes since your last check-in.';
+    const next = nextSteps[0];
+    const summary = next ? `${head} Suggested next: "${next.title}".` : `${head} Nothing open to work on.`;
+
+    return {
+      since: since?.toISOString() ?? null,
+      timezone: user.timezone,
+      summary,
+      completedSinceLastSession,
+      addedSinceLastSession,
+      blocked,
+      overdue,
+      nextSteps,
     };
   }
 }

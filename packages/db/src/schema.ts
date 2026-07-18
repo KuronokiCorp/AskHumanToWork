@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
-export const todoStatusEnum = pgEnum('todo_status', ['open', 'doing', 'done', 'cancelled']);
+export const todoStatusEnum = pgEnum('todo_status', ['open', 'doing', 'blocked', 'done', 'cancelled']);
 export const todoSourceEnum = pgEnum('todo_source', ['human', 'ai']);
 export const reminderChannelEnum = pgEnum('reminder_channel', ['email', 'web_push']);
 export const reminderStatusEnum = pgEnum('reminder_status', ['pending', 'sent', 'cancelled']);
@@ -67,6 +67,8 @@ export const todos = pgTable(
     notes: text('notes'),
     dueAt: timestamp('due_at', { withTimezone: true }),
     status: todoStatusEnum('status').notNull().default('open'),
+    // Why this todo can't proceed; set alongside status 'blocked'.
+    blockedReason: text('blocked_reason'),
     priority: smallint('priority').notNull().default(0),
     source: todoSourceEnum('source').notNull().default('human'),
     // What the client reported it is (x-agent-name header), e.g. "claude-code".

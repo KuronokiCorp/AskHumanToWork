@@ -106,6 +106,21 @@ export function registerTodoRoutes(app: FastifyInstance, ctx: AppContext) {
     return agendaSvc.forUser(req.auth!.userId, tokenProjectScope(req.auth));
   });
 
+  /**
+   * Session-start briefing for agents: diff since this token's previous use
+   * (completed / added), blocked todos with reasons, and ranked next steps.
+   * `?since=ISO` overrides the marker (useful for sessions and testing).
+   */
+  app.get('/api/briefing', { preHandler: [auth, requireScope('todos:read')] }, async (req) => {
+    const { since: sinceParam } = req.query as { since?: string };
+    const parsed = sinceParam ? new Date(sinceParam) : null;
+    const since =
+      parsed && !Number.isNaN(parsed.getTime())
+        ? parsed
+        : (req.auth!.prevUsedAt ?? new Date(Date.now() - 24 * 3_600_000));
+    return agendaSvc.briefingForUser(req.auth!.userId, tokenProjectScope(req.auth), since);
+  });
+
   app.get('/api/projects', { preHandler: [auth, requireScope('projects:read')] }, async (req) => {
     return { projects: await projectSvc.list(req.auth!.userId) };
   });

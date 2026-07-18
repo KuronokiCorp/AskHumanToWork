@@ -1,5 +1,6 @@
 import type {
   Agenda,
+  Briefing,
   CreateTodoInput,
   ListTodosQuery,
   Project,
@@ -83,6 +84,10 @@ export class RestTodoClient implements TodoClient {
 
   async getAgenda(): Promise<Agenda> {
     return this.call<Agenda>('GET', '/api/agenda');
+  }
+
+  async getBriefing(): Promise<Briefing> {
+    return this.call<Briefing>('GET', '/api/briefing');
   }
 
   async listProjects(): Promise<Project[]> {

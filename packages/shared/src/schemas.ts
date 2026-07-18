@@ -26,6 +26,8 @@ export const todoSchema = z.object({
   notes: z.string().nullable(),
   dueAt: z.string().nullable(), // ISO UTC
   status: z.enum(TODO_STATUSES),
+  /** Why this todo can't proceed; set alongside status "blocked". */
+  blockedReason: z.string().nullable(),
   priority: z.number().int().min(0).max(3),
   source: z.enum(TODO_SOURCES),
   createdByAgent: z.string().nullable(),
@@ -99,6 +101,8 @@ export const updateTodoInputSchema = z.object({
   priority: z.number().int().min(0).max(3).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   status: z.enum(TODO_STATUSES).optional(),
+  /** Why this todo is blocked; meaningful with status "blocked", auto-cleared when unblocked. */
+  blockedReason: z.string().max(500).nullable().optional(),
   /** Natural-language recurrence; null clears it. */
   repeat: z.string().max(80).nullable().optional(),
 });
@@ -152,3 +156,23 @@ export const agendaSchema = z.object({
   summary: z.string(),
 });
 export type Agenda = z.infer<typeof agendaSchema>;
+
+// ---------- Briefing ----------
+
+/**
+ * Session-start diff for an agent: what changed since this token's last
+ * check-in, what's blocked, and what to work on next.
+ */
+export const briefingSchema = z.object({
+  /** ISO instant the diff is computed from (the token's previous use), or null. */
+  since: z.string().nullable(),
+  timezone: z.string(),
+  summary: z.string(),
+  completedSinceLastSession: z.array(todoSchema),
+  addedSinceLastSession: z.array(todoSchema),
+  blocked: z.array(todoSchema),
+  overdue: z.array(todoSchema),
+  /** Open todos ranked by urgency — the recommended order to start work. */
+  nextSteps: z.array(todoSchema),
+});
+export type Briefing = z.infer<typeof briefingSchema>;

@@ -176,9 +176,12 @@ export class TodoService {
     if (project !== undefined) patch.projectId = project?.id ?? null;
     if (input.priority !== undefined) patch.priority = input.priority;
     if (input.tags !== undefined) patch.tags = input.tags;
+    if (input.blockedReason !== undefined) patch.blockedReason = input.blockedReason;
     if (input.status !== undefined) {
       patch.status = input.status;
       patch.completedAt = input.status === 'done' ? new Date() : null;
+      // The reason only makes sense while blocked — clear it on any other status.
+      if (input.status !== 'blocked' && input.blockedReason === undefined) patch.blockedReason = null;
     }
     if (input.repeat !== undefined) {
       if (input.repeat === null) {

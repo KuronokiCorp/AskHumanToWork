@@ -1,4 +1,4 @@
-export const TODO_STATUSES = ['open', 'doing', 'done', 'cancelled'] as const;
+export const TODO_STATUSES = ['open', 'doing', 'blocked', 'done', 'cancelled'] as const;
 export type TodoStatus = (typeof TODO_STATUSES)[number];
 
 export const TODO_SOURCES = ['human', 'ai'] as const;

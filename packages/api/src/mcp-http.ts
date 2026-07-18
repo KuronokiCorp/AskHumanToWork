@@ -32,6 +32,7 @@ class CoreTodoClient implements TodoClient {
     private userId: string,
     private agent: string,
     private scope: TokenProjectScope | null = null,
+    private prevUsedAt: Date | null = null,
   ) {
     this.todoSvc = new TodoService(ctx);
     this.agendaSvc = new AgendaService(ctx);
@@ -75,6 +76,11 @@ class CoreTodoClient implements TodoClient {
 
   async getAgenda() {
     return this.agendaSvc.forUser(this.userId, this.scope);
+  }
+
+  async getBriefing() {
+    const since = this.prevUsedAt ?? new Date(Date.now() - 24 * 3_600_000);
+    return this.agendaSvc.briefingForUser(this.userId, this.scope, since);
   }
 
   async listProjects() {
@@ -141,6 +147,7 @@ export function registerMcpHttp(app: FastifyInstance, ctx: AppContext) {
       auth.userId,
       auth.agentName ?? 'mcp-http',
       tokenProjectScope(auth),
+      auth.prevUsedAt ?? null,
     );
     const server = createTodoMcpServer(client);
     const transport = new StreamableHTTPServerTransport({

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
+  Ban,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -14,12 +15,12 @@ import type { Todo } from '@askhumantowork/shared';
 import { api } from '../api';
 import QuickAdd from '../components/QuickAdd';
 import TodoItem from '../components/TodoItem';
-import { EmptyState, PageHeader } from '../components/ui';
+import { EmptyState, PageHeader, projectAutoColor as autoColor } from '../components/ui';
 
 /** How often the web checks the server for remote changes (agents adding todos). */
 const SYNC_INTERVAL_MS = 15_000;
 
-const isOpen = (t: Todo) => t.status === 'open' || t.status === 'doing';
+const isOpen = (t: Todo) => t.status === 'open' || t.status === 'doing' || t.status === 'blocked';
 
 /** Local-timezone day key, e.g. "2026-07-17". */
 function dayKey(d: Date): string {
@@ -78,13 +79,6 @@ const BAR_H = 22; // vertical rhythm per bar lane (bar + gap)
 const BAR_TOP = 34; // space reserved above bars for the date number
 const MAX_LANES = 3; // bar rows per week before "+N more"
 
-/** Deterministic pleasant color for projects the user hasn't colored. */
-function autoColor(name: string | null | undefined): string {
-  if (!name) return '#71717a';
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-  return `hsl(${h}, 55%, 46%)`;
-}
 
 /**
  * Full-width month calendar with todo titles visible in each day cell
@@ -241,10 +235,13 @@ function BigMonthCalendar({
               .filter((p) => p.lane < MAX_LANES)
               .map((p) => {
                 const isOverdue = new Date(p.todo.dueAt!) < now;
-                const color = isOverdue
-                  ? '#dc2626'
-                  : (p.todo.projectName && projectColors.get(p.todo.projectName)) ||
-                    autoColor(p.todo.projectName);
+                const color =
+                  p.todo.status === 'blocked'
+                    ? '#d97706'
+                    : isOverdue
+                      ? '#dc2626'
+                      : (p.todo.projectName && projectColors.get(p.todo.projectName)) ||
+                        autoColor(p.todo.projectName);
                 const dueStr = new Date(p.todo.dueAt!).toLocaleString([], {
                   month: 'short',
                   day: 'numeric',
@@ -323,7 +320,7 @@ export default function AgendaView() {
     return m;
   }, [projectsQuery.data]);
 
-  const { overdue, undated, doneToday, byDay, spans } = useMemo(() => {
+  const { blocked, overdue, undated, doneToday, byDay, spans } = useMemo(() => {
     const all = query.data?.todos ?? [];
     const open = all.filter(isOpen);
 
@@ -358,8 +355,9 @@ export default function AgendaView() {
       );
 
     return {
-      overdue: open.filter((t) => t.dueAt && new Date(t.dueAt) < now),
-      undated: open.filter((t) => !t.dueAt),
+      blocked: open.filter((t) => t.status === 'blocked'),
+      overdue: open.filter((t) => t.status !== 'blocked' && t.dueAt && new Date(t.dueAt) < now),
+      undated: open.filter((t) => t.status !== 'blocked' && !t.dueAt),
       doneToday: all.filter(
         (t) => t.status === 'done' && t.completedAt && dayKey(new Date(t.completedAt)) === todayStr,
       ),
@@ -381,7 +379,11 @@ export default function AgendaView() {
 
   const dateLine = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
   const nothingAtAll =
-    byDay.size === 0 && overdue.length === 0 && undated.length === 0 && doneToday.length === 0;
+    byDay.size === 0 &&
+    overdue.length === 0 &&
+    blocked.length === 0 &&
+    undated.length === 0 &&
+    doneToday.length === 0;
 
   return (
     <div className="mx-auto max-w-[1200px] px-8 py-10 animate-fade-in">
@@ -440,6 +442,7 @@ export default function AgendaView() {
                 )}
               </div>
               <Section icon={<Flame size={13} strokeWidth={2.5} />} label="Overdue" tone="red" todos={overdue} />
+              <Section icon={<Ban size={13} strokeWidth={2.5} />} label="Blocked" tone="amber" todos={blocked} />
               <Section
                 icon={<CircleDashed size={13} strokeWidth={2.5} />}
                 label="No due date"

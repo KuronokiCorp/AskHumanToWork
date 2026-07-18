@@ -120,6 +120,23 @@ Also try:
 - The `/capture-followups` prompt → Claude scans the whole conversation and files every commitment
   as a todo.
 
+### Session briefing — agents pick up where things left off ⭐
+
+Every agent session starts with `get_briefing`: the server diffs your list against **that token's
+previous check-in** and hands the agent everything it needs to continue the work instead of
+starting cold:
+
+- **Completed since last session** — the agent sees what you finished and acknowledges progress
+  instead of re-suggesting it.
+- **Blocked, with reasons** — todos marked `status: blocked` (e.g. *"waiting for App Review"*)
+  are surfaced every session until unblocked, so nothing silently stalls. Agents can set and
+  clear this themselves via `update_todo`.
+- **Newly added & overdue** — what appeared while the agent was away, and what slipped.
+- **`nextSteps`** — the open todos ranked by urgency: the recommended order to start working.
+
+No extra bookkeeping: the "since" marker is simply the token's `lastUsedAt`, so each agent gets
+its own personal diff automatically.
+
 ## 6. Watch a reminder fire
 
 Reminders ladder automatically: **1 day before → 1 hour before → at due → daily overdue nudges**.
@@ -194,9 +211,11 @@ Flutter app ──REST──────────────►┘       │
 
 ## MCP surface
 
-**Tools:** `add_todo` (natural dates, `origin_context` provenance, idempotent, `sync_to` routing) ·
-`list_todos` · `search_todos` · `update_todo` · `complete_todo` · `reschedule_todo` · `get_agenda` ·
-`list_projects` · `list_integrations` · `resolve_time`
+**Tools:** `get_briefing` (session-start diff: completed/added since last check-in, blocked with
+reasons, ranked next steps) · `add_todo` (natural dates, `origin_context` provenance, idempotent,
+`sync_to` routing) · `list_todos` · `search_todos` · `update_todo` (incl. `blocked` +
+`blocked_reason`) · `complete_todo` · `reschedule_todo` · `get_agenda` · `list_projects` ·
+`list_integrations` · `resolve_time`
 
 **Resources:** `todo://agenda/today` · `todo://agenda/overdue` · `todo://projects`
 **Prompts:** `capture-followups` · `review-my-todos`
