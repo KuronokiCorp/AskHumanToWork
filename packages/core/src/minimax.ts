@@ -20,22 +20,51 @@ const DEFAULT_MAX_TOKENS = 1_024;
 
 /**
  * Price per 1M tokens in micro-USD, per platform.minimax.io/docs/guides/pricing-paygo
- * (verified 2026-07-18): MiniMax-M3 at $0.30 in / $1.20 out.
+ * (verified 2026-07-18): MiniMax-M3 at $0.30 in / $1.20 out / $0.06 cache read.
  *
  * These rates are the ≤512k-context tier; MiniMax doubles them above 512k
  * context. A per-todo chat is nowhere near that, but if this client is ever
  * reused for long-context work the rates must be tiered.
  */
-export const MINIMAX_PRICING: Record<string, { inputPerMTok: number; outputPerMTok: number }> = {
-  'MiniMax-M3': { inputPerMTok: 300_000, outputPerMTok: 1_200_000 },
-  'MiniMax-M2.7': { inputPerMTok: 300_000, outputPerMTok: 1_200_000 },
-  'MiniMax-M2.7-highspeed': { inputPerMTok: 600_000, outputPerMTok: 2_400_000 },
+export const MINIMAX_PRICING: Record<
+  string,
+  { inputPerMTok: number; outputPerMTok: number; cachedInputPerMTok: number }
+> = {
+  'MiniMax-M3': { inputPerMTok: 300_000, outputPerMTok: 1_200_000, cachedInputPerMTok: 60_000 },
+  'MiniMax-M2.7': { inputPerMTok: 300_000, outputPerMTok: 1_200_000, cachedInputPerMTok: 60_000 },
+  'MiniMax-M2.7-highspeed': {
+    inputPerMTok: 600_000,
+    outputPerMTok: 2_400_000,
+    cachedInputPerMTok: 60_000,
+  },
 };
 
-export function minimaxCostMicros(model: string, inputTokens: number, outputTokens: number): number {
+/**
+ * Cost of one call in micro-USD.
+ *
+ * `cachedTokens` is the slice of the prompt MiniMax served from its own cache,
+ * billed at a fifth of the normal input rate. This matters more than it looks:
+ * because every turn replays the same system prompt and history, real traffic
+ * comes back with most of the prompt cached (160+ of ~180 tokens on a short
+ * thread), so charging the full input rate across the board overcharges the
+ * input side several times over.
+ */
+export function minimaxCostMicros(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  cachedTokens = 0,
+): number {
   const rate = MINIMAX_PRICING[model] ?? MINIMAX_PRICING[DEFAULT_MODEL]!;
+  // Guard against a cached count exceeding the prompt total, which would make
+  // the fresh slice negative and undercharge.
+  const cached = Math.min(Math.max(0, cachedTokens), inputTokens);
+  const fresh = inputTokens - cached;
   return Math.ceil(
-    (inputTokens * rate.inputPerMTok + outputTokens * rate.outputPerMTok) / 1_000_000,
+    (fresh * rate.inputPerMTok +
+      cached * rate.cachedInputPerMTok +
+      outputTokens * rate.outputPerMTok) /
+      1_000_000,
   );
 }
 
@@ -49,8 +78,18 @@ export interface MiniMaxConfig {
 }
 
 interface MiniMaxResponse {
-  choices?: { message?: { content?: string } }[];
-  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  choices?: {
+    message?: {
+      content?: string;
+      /** The model's own reasoning trace — deliberately not shown to the user. */
+      reasoning_content?: string;
+    };
+  }[];
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+  };
   base_resp?: { status_code?: number; status_msg?: string };
 }
 
@@ -103,13 +142,14 @@ export class MiniMaxChatClient implements ChatModelClient {
 
     const inputTokens = body.usage?.prompt_tokens ?? 0;
     const outputTokens = body.usage?.completion_tokens ?? 0;
+    const cachedTokens = body.usage?.prompt_tokens_details?.cached_tokens ?? 0;
 
     return {
       content,
       model: this.model,
       inputTokens,
       outputTokens,
-      costMicros: minimaxCostMicros(this.model, inputTokens, outputTokens),
+      costMicros: minimaxCostMicros(this.model, inputTokens, outputTokens, cachedTokens),
     };
   }
 }
