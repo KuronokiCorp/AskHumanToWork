@@ -47,7 +47,7 @@ export async function buildServer(ctx: AppContext) {
   // at this scale). Auth endpoints get stricter limits per-route.
   await app.register(rateLimit, {
     global: true,
-    max: 300,
+    max: env.rateLimitMax,
     timeWindow: '1 minute',
   });
 

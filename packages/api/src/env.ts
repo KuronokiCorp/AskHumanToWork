@@ -28,6 +28,13 @@ export const env = {
    * user per test from one IP, can raise it; leave it alone in production.
    */
   authRateLimitMax: Number(process.env.AUTH_RATE_LIMIT_MAX ?? 10),
+  /**
+   * Per-minute cap across every route. Configurable for the same reason as the
+   * auth limit: the e2e suite drives the whole app from one IP and exhausts a
+   * production-sized budget partway through, which surfaces as unrelated tests
+   * failing on 429.
+   */
+  rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 300),
   /** Per-todo AI assistant. Without a key the chat endpoints report unavailable. */
   minimax: {
     apiKey: process.env.MINIMAX_API_KEY ?? '',

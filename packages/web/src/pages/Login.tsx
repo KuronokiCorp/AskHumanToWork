@@ -58,7 +58,12 @@ export default function Login({ onDone }: { onDone: () => void }) {
   const providers = useQuery({
     queryKey: ['oauth-providers'],
     queryFn: api.oauthProviders,
-    retry: false,
+    // A deployment without Supabase answers 200 with an empty list, so every
+    // *error* here is transient — a rate limit, a blip. Not retrying would
+    // silently cost the user their sign-in options with nothing on screen to
+    // explain why.
+    retry: 2,
+    staleTime: 5 * 60_000,
   });
 
   /**

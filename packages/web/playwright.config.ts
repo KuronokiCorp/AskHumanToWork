@@ -58,6 +58,9 @@ export default defineConfig({
         // Every test signs up an isolated user from one IP, which trips the
         // production 10/min credential limit once the suite is large enough.
         AUTH_RATE_LIMIT_MAX: '1000',
+        // The whole suite hits the API from one IP; the production
+        // 300/min budget runs out mid-run and 429s unrelated tests.
+        RATE_LIMIT_MAX: '100000',
         // Social sign-in against the stub below; without these the
         // provider list is empty and no buttons render.
         SUPABASE_URL: `http://localhost:${SUPABASE_STUB_PORT}`,
