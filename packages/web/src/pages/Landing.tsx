@@ -1,266 +1,115 @@
-import { useEffect, useState } from 'react';
-import { Logo } from '../components/ui';
+import { useState } from 'react';
+import { ArrowUp, Sparkles } from 'lucide-react';
+import LandingNav from '../components/landing/LandingNav';
+import ScaledDashboard from '../components/landing/ScaledDashboard';
+import DashboardMockup from '../components/landing/DashboardMockup';
 
 const REPO_URL = 'https://github.com/KuronokiCorp/AskHumanToWork';
-const MCP_COMMAND = 'claude mcp add heyhuman --env TODO_API_TOKEN=<your-token> -- npx -y heyhuman-mcp';
 
-const NAV_LINKS = [
-  { label: 'How it works', href: `${REPO_URL}#readme` },
-  { label: 'MCP', href: `${REPO_URL}#mcp-surface` },
-  { label: 'API', href: `${REPO_URL}#auth-model` },
-  { label: 'GitHub', href: REPO_URL },
-];
-
-const PILLS = [
-  { label: 'Quick start', href: `${REPO_URL}#tutorial--zero-to-your-first-ai-captured-todo` },
-  { label: 'Get a token', href: '/login' },
-  { label: 'Self-host', href: `${REPO_URL}#deploying` },
-  { label: 'Architecture', href: `${REPO_URL}#architecture` },
-];
-
-/** Reveal `text` one character at a time after `startDelay`. */
-function useTypewriter(text: string, speed = 38, startDelay = 600) {
-  const [displayed, setDisplayed] = useState('');
-  const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    setDisplayed('');
-    setDone(false);
-    let i = 0;
-    let interval: ReturnType<typeof setInterval> | undefined;
-    const start = setTimeout(() => {
-      interval = setInterval(() => {
-        i += 1;
-        setDisplayed(text.slice(0, i));
-        if (i >= text.length) {
-          if (interval) clearInterval(interval);
-          setDone(true);
-        }
-      }, speed);
-    }, startDelay);
-    return () => {
-      clearTimeout(start);
-      if (interval) clearInterval(interval);
-    };
-  }, [text, speed, startDelay]);
-
-  return { displayed, done };
-}
-
+/**
+ * Full-viewport hero.
+ *
+ * The background is a CSS gradient rather than an image: it costs no request,
+ * never 404s, and scales to any viewport. The soft band at the bottom is what
+ * the dashboard appears to rise out of.
+ */
 export default function Landing() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [pillsVisible, setPillsVisible] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [capture, setCapture] = useState('');
 
-  const { displayed, done } = useTypewriter(
-    'Your agents capture todos over MCP. You do the work. One agenda, escalating reminders, full provenance.',
-  );
-
-  // Reveal the actions shortly after load, independent of the typewriter.
-  useEffect(() => {
-    const t = setTimeout(() => setPillsVisible(true), 400);
-    return () => clearTimeout(t);
-  }, []);
-
-  const copyCommand = () => {
-    void navigator.clipboard?.writeText(MCP_COMMAND);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  // The capture bar is a teaser for quick-add, not a working input — anything
+  // typed is carried to sign-up rather than silently dropped.
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const draft = capture.trim();
+    window.location.assign(draft ? `/login?draft=${encodeURIComponent(draft)}` : '/login');
   };
 
   return (
-    <div className="relative min-h-screen bg-zinc-50 text-zinc-900">
-      {/* Navbar */}
-      <nav className="fixed inset-x-0 top-0 z-10 flex items-center justify-between bg-zinc-50/80 px-5 py-4 backdrop-blur-sm sm:px-8 sm:py-5">
-        <a href="/" className="flex items-center gap-3">
-          <Logo size={26} />
-          <span className="text-[15px] font-bold tracking-tight sm:text-[17px]">
-            askhumantowork
+    <div
+      className="relative flex min-h-[100svh] flex-col overflow-hidden bg-cover bg-center"
+      style={{
+        backgroundImage:
+          'radial-gradient(120% 80% at 50% -10%, #ede9fe 0%, #f4f4f5 45%, #fafafa 100%)',
+      }}
+    >
+      <LandingNav />
+
+      <div className="min-h-8 flex-1 shrink-0 sm:min-h-12 lg:min-h-16" />
+
+      {/* Hero content */}
+      <div className="relative z-20 flex flex-col items-center px-5 text-center sm:px-8">
+        <h1 className="font-normal leading-[1.05] tracking-tight text-zinc-900">
+          <span className="animate-fade-up block text-[40px] min-[400px]:text-[44px] sm:text-6xl lg:text-7xl xl:text-[80px]">
+            Your AI remembers.
           </span>
-          <span className="select-none text-[19px] sm:text-[22px]" style={{ letterSpacing: '-0.02em' }} aria-hidden>
-            ✳︎
+          <span className="animate-fade-up block text-[40px] [animation-delay:100ms] min-[400px]:text-[44px] sm:text-6xl lg:text-7xl xl:text-[80px]">
+            You get it done.
           </span>
-        </a>
+        </h1>
 
-        {/* Desktop nav links */}
-        <div className="hidden items-center gap-6 text-[14px] text-zinc-600 md:flex">
-          {NAV_LINKS.map(({ label, href }) => (
-            <a key={label} href={href} className="transition-opacity hover:opacity-60">
-              {label}
-            </a>
-          ))}
-        </div>
-
-        {/* Desktop CTA */}
-        <a
-          href="/login"
-          className="hidden text-[14px] underline underline-offset-2 transition-opacity hover:opacity-60 md:inline"
+        <form
+          onSubmit={submit}
+          className="animate-fade-up mt-5 w-full max-w-xl [animation-delay:220ms] sm:mt-6"
         >
-          Sign in
-        </a>
-
-        {/* Mobile hamburger */}
-        <button
-          type="button"
-          aria-label="Toggle menu"
-          onClick={() => setMenuOpen((v) => !v)}
-          className="flex flex-col gap-[5px] md:hidden"
-        >
-          <span
-            className="h-[2px] w-6 bg-black transition-transform duration-300"
-            style={menuOpen ? { transform: 'translateY(7px) rotate(45deg)' } : undefined}
-          />
-          <span
-            className="h-[2px] w-6 bg-black transition-opacity duration-300"
-            style={menuOpen ? { opacity: 0 } : undefined}
-          />
-          <span
-            className="h-[2px] w-6 bg-black transition-transform duration-300"
-            style={menuOpen ? { transform: 'translateY(-7px) rotate(-45deg)' } : undefined}
-          />
-        </button>
-      </nav>
-
-      {/* Mobile overlay */}
-      <div
-        className="fixed inset-0 z-[9] flex flex-col justify-center gap-8 bg-white/95 px-8 backdrop-blur-sm transition-opacity duration-300 md:hidden"
-        style={{ opacity: menuOpen ? 1 : 0, pointerEvents: menuOpen ? 'auto' : 'none' }}
-      >
-        {NAV_LINKS.map(({ label, href }) => (
-          <a key={label} href={href} className="text-[24px] font-medium" onClick={() => setMenuOpen(false)}>
-            {label}
-          </a>
-        ))}
-        <a href="/login" className="text-[24px] font-medium underline underline-offset-2">
-          Sign in
-        </a>
-      </div>
-
-      {/* Hero */}
-      <section className="relative z-[1] flex min-h-screen flex-col justify-end overflow-hidden px-5 pb-12 sm:px-8 md:justify-center md:px-10 md:pb-0">
-        <div className="relative z-10 max-w-2xl">
-          {/* Blurred intro label */}
-          <div
-            className="pointer-events-none mb-5 select-none text-zinc-800 sm:mb-6"
-            style={{ fontSize: 'clamp(15px, 3vw, 20px)', lineHeight: 1.4, filter: 'blur(3px)' }}
-          >
-            Hey there — meet HeyHuman,
-            <br />
-            the todo hub where your AI asks you to work
-          </div>
-
-          {/* Typewriter line */}
-          <p
-            className="mb-6 sm:mb-7"
-            style={{ fontSize: 'clamp(15px, 3vw, 20px)', lineHeight: 1.5, minHeight: 54 }}
-          >
-            <span className="mr-2 text-violet-600" aria-hidden>
-              ❯
-            </span>
-            {displayed}
-            {!done && (
-              <span
-                data-testid="cursor"
-                className="ml-[2px] inline-block h-[1.1em] w-[8px] bg-zinc-900 align-middle"
-                style={{ animation: 'blink 1s step-end infinite' }}
-              />
-            )}
-          </p>
-
-          {/* Terminal quick-start block */}
-          <div className="mb-6 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-4 text-[12.5px] leading-relaxed shadow-card sm:mb-7 sm:text-[13.5px]">
-            <div className="mb-2 flex items-center gap-1.5" aria-hidden>
-              <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-              <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-              <span className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-            </div>
-            <div className="whitespace-nowrap">
-              <span className="text-violet-600">❯</span> {MCP_COMMAND}
-            </div>
-            <div className="text-emerald-600">✓ connected — todos your AI captures land in your agenda</div>
-          </div>
-
-          {/* Action pills */}
-          <div
-            data-testid="pills"
-            className="flex flex-wrap gap-y-1"
-            style={{
-              opacity: pillsVisible ? 1 : 0,
-              transform: pillsVisible ? 'translateY(0)' : 'translateY(8px)',
-              transition: 'opacity 0.4s ease, transform 0.4s ease',
-            }}
-          >
-            {PILLS.map(({ label, href }) => (
-              <a
-                key={label}
-                href={href}
-                className="mx-[0.2em] mb-[0.4em] inline-flex items-center justify-center whitespace-nowrap rounded-full border border-black/10 bg-white px-4 py-[0.35em] text-[13px] transition-colors duration-200 hover:bg-black hover:text-white sm:px-5 sm:text-[14px]"
-              >
-                {label}
-              </a>
-            ))}
-
-            {/* Outline pill: copy the MCP command */}
+          <div className="flex items-center gap-3 rounded-full bg-white/60 py-1.5 pl-5 pr-1.5 ring-1 ring-zinc-200 backdrop-blur-md">
+            <input
+              value={capture}
+              onChange={(e) => setCapture(e.target.value)}
+              aria-label="Capture a todo"
+              placeholder="Ship the release notes @friday 5pm #Work"
+              className="flex-1 bg-transparent py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-500 sm:text-base"
+            />
             <button
-              type="button"
-              onClick={copyCommand}
-              className="mx-[0.2em] mb-[0.4em] inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border border-black bg-transparent px-4 py-[0.35em] text-[13px] transition-colors duration-200 hover:bg-black hover:text-white sm:gap-3 sm:px-5 sm:text-[14px]"
+              type="submit"
+              aria-label="Capture"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white transition-transform hover:scale-105 active:scale-95 sm:h-10 sm:w-10"
             >
-              <span>{copied ? 'Copied!' : 'Copy: claude mcp add heyhuman'}</span>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <rect x="9" y="9" width="12" height="12" rx="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
+              <ArrowUp className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
             </button>
           </div>
-        </div>
-      </section>
+        </form>
 
-      {/* Below the fold: what it looks like */}
-      <section className="px-5 pb-16 sm:px-8 md:px-10">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-            <span className="mr-2 text-violet-600" aria-hidden>
-              ❯
-            </span>
-            the agenda your agents fill
-          </div>
-          <img
-            src="/screenshot-agenda.png"
-            alt="AskHumanToWork agenda: month calendar with due-day dots beside Today, Overdue and This-week sections, each todo showing which agent captured it"
-            loading="lazy"
-            className="w-full rounded-2xl border border-zinc-200 shadow-card"
-          />
-          <p className="mt-3 text-[12.5px] leading-relaxed text-zinc-500">
-            Todos your agents capture over MCP land here in real time — dated ones on the
-            calendar, undated ones in their own section, every card carrying which agent asked.
-          </p>
-        </div>
-      </section>
+        <p className="animate-fade-up mt-4 max-w-xl text-sm leading-relaxed text-zinc-600 [animation-delay:340ms] sm:mt-5 sm:text-base lg:text-lg">
+          Every follow-up your agents promised, filed with the reason it exists
+          <br />
+          — and nagged until it's done, straight from{' '}
+          <Sparkles className="-mt-1 inline h-4 w-4" aria-hidden /> Claude
+        </p>
 
-      <footer className="border-t border-zinc-200/70 px-5 py-8 sm:px-8 md:px-10">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
-          <p className="text-[12.5px] text-zinc-500">Built for people who work with AI every day.</p>
+        <div className="animate-fade-up mt-4 flex flex-wrap items-center justify-center gap-3 [animation-delay:460ms] sm:mt-5">
           <a
-            href="https://buymeacoffee.com/kuronoki"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#ffdd00] px-3.5 py-2 text-[13px] font-semibold text-zinc-900 shadow-card transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            href="/login"
+            className="rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800 hover:shadow-lg"
           >
-            <span aria-hidden>☕</span> Buy me a coffee
+            Start free
+          </a>
+          <a
+            href={`${REPO_URL}#5-connect-claude--the-main-event`}
+            className="rounded-full px-6 py-2.5 text-sm font-medium text-zinc-700 ring-1 ring-zinc-300 transition-colors hover:bg-zinc-100"
+          >
+            Connect Claude
           </a>
         </div>
-      </footer>
+      </div>
+
+      <div className="min-h-10 flex-1 shrink-0 sm:min-h-12 lg:min-h-16" />
+
+      {/* Dashboard rises out of the band below */}
+      <div className="animate-hero-rise relative z-0 mx-auto -mb-10 w-[92%] max-w-4xl shrink-0 [animation-delay:620ms] sm:-mb-20 sm:w-[84%] lg:-mb-32 lg:w-[72%]">
+        <ScaledDashboard>
+          <DashboardMockup />
+        </ScaledDashboard>
+      </div>
+
+      {/* Stands in for the spec's grass layer: a soft band the mockup emerges
+          from. Self-hosted CSS, so there is no external asset to rot. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 left-0 z-10 h-24 w-full select-none sm:h-32"
+        style={{
+          background: 'linear-gradient(to top, rgba(237,233,254,0.95) 0%, rgba(244,244,245,0) 100%)',
+        }}
+      />
     </div>
   );
 }

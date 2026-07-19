@@ -1,15 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Reviews tasks 1+2: the developer landing page at / (logged-out) in the
- * light-minimal-mono "Claude Code" style. No backend runs; /api/me 500s,
- * which is the logged-out state that renders the landing.
+ * The logged-out landing page at /: a full-viewport hero over a scaled
+ * dashboard mockup. The API is running but nobody is signed in, so /api/me
+ * 401s — that is the state which renders this page.
  */
 
-const TYPEWRITER_TEXT =
-  'Your agents capture todos over MCP. You do the work. One agenda, escalating reminders, full provenance.';
-const MCP_COMMAND =
-  'claude mcp add heyhuman --env TODO_API_TOKEN=<your-token> -- npx -y heyhuman-mcp';
 const REPO_URL = 'https://github.com/KuronokiCorp/AskHumanToWork';
 
 test.beforeEach(async ({ page }) => {
@@ -18,75 +14,83 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText('askhumantowork', { exact: true })).toBeVisible({ timeout: 15_000 });
 });
 
-test('renders the shell: title, logo, decorative asterisk', async ({ page }) => {
+test('renders the headline over the full viewport', async ({ page }) => {
   await expect(page).toHaveTitle(/AskHumanToWork/);
-  await expect(page.getByText('✳︎')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Your AI remembers/ })).toBeVisible();
+  await expect(page.getByText('You get it done.')).toBeVisible();
+
+  // The hero fills the viewport rather than sitting in a short band.
+  const heroHeight = await page
+    .locator('div.relative.flex.min-h-\\[100svh\\]')
+    .evaluate((el) => el.getBoundingClientRect().height);
+  const viewport = page.viewportSize()!.height;
+  expect(heroHeight).toBeGreaterThanOrEqual(viewport * 0.9);
 });
 
-test('task 2 style: mono font, light background, no Helvetica', async ({ page }) => {
+test('keeps the mono identity — no Helvetica webfont', async ({ page }) => {
   const { fontFamily, background } = await page.evaluate(() => ({
     fontFamily: getComputedStyle(document.body).fontFamily,
     background: getComputedStyle(document.body).backgroundColor,
   }));
   expect(fontFamily).toContain('JetBrains Mono');
   expect(fontFamily).not.toContain('Helvetica');
-  // zinc-100/70 body on a zinc-50 page wrapper — both light, not near-black.
   expect(background).not.toBe('rgb(0, 0, 0)');
-  // The old Helvetica webfont stylesheets must be gone from the document.
-  const helveticaLinks = await page
-    .locator('link[href*="onlinewebfonts"]')
-    .count();
-  expect(helveticaLinks).toBe(0);
+  // No third-party font stylesheet crept in with the redesign.
+  expect(await page.locator('link[href*="onlinewebfonts"]').count()).toBe(0);
 });
 
-test('typewriter types the full line, then the cursor disappears', async ({ page }) => {
-  // Cursor is visible while typing…
-  await expect(page.getByTestId('cursor')).toBeVisible();
-  // …the full text lands (105 chars × 38ms ≈ 4s after the 600ms delay)…
-  await expect(page.getByText(TYPEWRITER_TEXT)).toBeVisible({ timeout: 15_000 });
-  // …and the cursor unmounts when done.
-  await expect(page.getByTestId('cursor')).toHaveCount(0);
+test('capture bar carries a typed todo through to sign-up', async ({ page }) => {
+  const input = page.getByRole('textbox', { name: 'Capture a todo' });
+  await expect(input).toHaveAttribute('placeholder', /Ship the release notes/);
+
+  await input.fill('Review the auth PR @tomorrow 3pm');
+  await page.getByRole('button', { name: 'Capture' }).click();
+
+  // Nothing is silently dropped: the draft rides along to /login.
+  await page.waitForURL(/\/login\?draft=/);
+  expect(decodeURIComponent(page.url())).toContain('Review the auth PR @tomorrow 3pm');
 });
 
-test('action pills fade in and link to the right targets', async ({ page }) => {
-  const pills = page.getByTestId('pills');
-  await expect(pills).toBeVisible();
-  // Fade-in completed (opacity animates 0 → 1 at ~400ms).
-  await expect
-    .poll(async () => pills.evaluate((el) => getComputedStyle(el).opacity))
-    .toBe('1');
-  await expect(pills.getByRole('link', { name: 'Quick start' })).toHaveAttribute(
+test('an empty capture still routes to sign-up', async ({ page }) => {
+  await page.getByRole('button', { name: 'Capture' }).click();
+  await page.waitForURL(/\/login$/);
+});
+
+test('primary and secondary calls to action point at the right targets', async ({ page }) => {
+  await expect(page.getByRole('link', { name: 'Start free' })).toHaveAttribute('href', '/login');
+  await expect(page.getByRole('link', { name: 'Connect Claude' })).toHaveAttribute(
     'href',
     /github\.com/,
   );
-  await expect(pills.getByRole('link', { name: 'Get a token' })).toHaveAttribute('href', '/login');
 });
 
-test('terminal block shows the MCP quick-start command', async ({ page }) => {
-  await expect(page.getByText(MCP_COMMAND)).toBeVisible();
-  await expect(page.getByText('✓ connected', { exact: false })).toBeVisible();
+test('dashboard mockup renders inside browser chrome, scaled to fit', async ({ page }) => {
+  const mockup = page.getByText('askhumantowork.app');
+  await mockup.scrollIntoViewIfNeeded();
+  await expect(mockup).toBeVisible();
+
+  // Illustrative agenda content, including the provenance the product is about.
+  await expect(page.getByText('AI Inbox').first()).toBeVisible();
+  await expect(page.getByText('CAPTURED', { exact: true })).toBeVisible();
+  await expect(page.getByText('claude-code').first()).toBeVisible();
+
+  // ScaledDashboard must shrink the 896px design to the container, never
+  // overflow it — a horizontal scrollbar here would break the whole page.
+  const overflows = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+  );
+  expect(overflows).toBe(false);
 });
 
-test('product screenshot renders below the fold', async ({ page }) => {
-  const img = page.getByRole('img', { name: /agenda/i });
-  await img.scrollIntoViewIfNeeded();
-  await expect(img).toBeVisible();
-  // The asset actually loads (not a broken link).
-  await expect
-    .poll(async () => img.evaluate((el: HTMLImageElement) => el.naturalWidth))
-    .toBeGreaterThan(0);
-});
-
-test('copy pill writes the MCP command to the clipboard', async ({ page }) => {
-  await page.getByRole('button', { name: /Copy: claude mcp add heyhuman/ }).click();
-  await expect(page.getByRole('button', { name: 'Copied!' })).toBeVisible();
-  const clipboard = await page.evaluate(() => navigator.clipboard.readText());
-  expect(clipboard).toBe(MCP_COMMAND);
+test('entrance animations are declared and settle to visible', async ({ page }) => {
+  const headline = page.getByText('Your AI remembers.');
+  await expect(headline).toHaveClass(/animate-fade-up/);
+  await expect.poll(async () => headline.evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
 });
 
 test('desktop nav: links + Sign in CTA, hamburger hidden', async ({ page }) => {
   const nav = page.locator('nav');
-  for (const label of ['How it works', 'MCP', 'API', 'GitHub']) {
+  for (const label of ['How it works', 'MCP', 'GitHub']) {
     await expect(nav.getByRole('link', { name: label, exact: true })).toBeVisible();
   }
   await expect(nav.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', REPO_URL);
