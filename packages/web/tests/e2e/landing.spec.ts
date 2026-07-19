@@ -103,3 +103,57 @@ test('routing: /login renders the login form, not the landing', async ({ page })
   await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('input[type="password"]')).toBeVisible();
 });
+
+test.describe('narrow viewports', () => {
+  // 320px is the floor for common phones. The nav is the tight spot: wordmark,
+  // CTA and hamburger compete for one row.
+  test.use({ viewport: { width: 320, height: 700 } });
+
+  test('nav survives 320px without overlapping or wrapping the CTA', async ({ page }) => {
+    await page.goto('/');
+    const cta = page.locator('nav').getByRole('link', { name: 'Sign in' });
+    await expect(cta).toBeVisible({ timeout: 15_000 });
+
+    const wordmark = page.getByText('askhumantowork', { exact: true });
+    const ctaBox = await cta.boundingBox();
+    const markBox = await wordmark.boundingBox();
+
+    // The CTA stays a single line…
+    expect(ctaBox!.height).toBeLessThan(44);
+    // …and the wordmark ends before the CTA begins, rather than running under it.
+    expect(markBox!.x + markBox!.width).toBeLessThanOrEqual(ctaBox!.x + 1);
+
+    const overflows = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(overflows).toBe(false);
+  });
+});
+
+test.describe('reduced motion', () => {
+  test('entrance animations are disabled, content still visible', async ({ page }) => {
+    // emulateMedia rather than the reducedMotion context option: the latter
+    // did not reach the page here, so the media query never matched and the
+    // test passed vacuously.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+
+    const headline = page.getByText('Your AI remembers.');
+    await expect(headline).toBeVisible({ timeout: 15_000 });
+
+    const styles = await headline.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        matches: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        animationName: s.animationName,
+        opacity: s.opacity,
+      };
+    });
+
+    expect(styles.matches).toBe(true);
+    expect(styles.animationName).toBe('none');
+    // With the animation off the element must not be stranded at the
+    // keyframe's starting opacity of 0 — that would hide the hero entirely.
+    expect(styles.opacity).toBe('1');
+  });
+});

@@ -15,10 +15,12 @@ export default function LandingNav() {
 
   return (
     <nav className="animate-fade-down relative z-20 px-5 py-4 sm:px-8 sm:py-5 lg:px-10">
-      <div className="flex items-center justify-between">
-        <a href="/" className="flex items-center gap-2.5 text-zinc-900">
+      <div className="flex items-center justify-between gap-3">
+        {/* min-w-0 + truncate so the wordmark yields to the CTA on a 320px
+            screen instead of running underneath it. */}
+        <a href="/" className="flex min-w-0 items-center gap-2.5 text-zinc-900">
           <Logo size={26} />
-          <span className="text-[15px] font-bold tracking-tight sm:text-[17px]">
+          <span className="truncate text-[15px] font-bold tracking-tight sm:text-[17px]">
             askhumantowork
           </span>
         </a>
@@ -36,10 +38,10 @@ export default function LandingNav() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <a
             href="/login"
-            className="rounded-full bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-zinc-800 sm:px-5"
+            className="whitespace-nowrap rounded-full bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-zinc-800 sm:px-5"
           >
             Sign in
           </a>
