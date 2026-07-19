@@ -12,6 +12,15 @@ function formatMicros(micros: number): string {
 }
 
 /**
+ * The opening turn behind the suggest button. Sent as an ordinary user message
+ * so it reuses the same billing, persistence and rate limiting as anything the
+ * user types — the todo's own fields are already standing context server-side,
+ * so this doesn't need to restate the task.
+ */
+const SUGGEST_PROMPT =
+  "How should I approach this? Give me the concrete next steps, and flag anything that's likely to block me.";
+
+/**
  * Per-todo AI assistant. The todo's own fields are sent as context server-side,
  * so the user can ask "what's blocking this?" without restating anything.
  */
@@ -56,9 +65,24 @@ export default function TodoChat({ todoId }: { todoId: string }) {
       </div>
 
       {list.length === 0 && !send.isPending && (
-        <p className="mb-4 text-[13px] leading-relaxed text-zinc-500">
-          Ask how to break this down, what's likely blocking it, or how to word the next step.
-        </p>
+        <div className="mb-4">
+          <p className="text-[13px] leading-relaxed text-zinc-500">
+            Ask how to break this down, what's likely blocking it, or how to word the next step.
+          </p>
+          {/* Deliberately a click, never automatic on open: every suggestion is a
+              billed model call, and browsing a todo must stay free. */}
+          {!outOfCredit && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-3"
+              disabled={send.isPending}
+              onClick={() => send.mutate(SUGGEST_PROMPT)}
+            >
+              <Sparkles size={14} className="text-violet-500" /> Suggest how to tackle this
+            </Button>
+          )}
+        </div>
       )}
 
       <div className="space-y-3">

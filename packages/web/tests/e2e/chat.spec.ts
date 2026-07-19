@@ -83,6 +83,25 @@ test('a failed call surfaces an error and leaves no orphaned turn', async ({ pag
   await expect(page.getByText('please break')).toHaveCount(0);
 });
 
+test('the suggest button opens the thread without typing', async ({ page }) => {
+  await signup(page);
+  await openTodo(page, 'Ship the release');
+
+  // Opening the todo must not call the model — the opener is a click, so that
+  // merely browsing a todo never bills anything.
+  await expect(page.getByText(/tokens ·/)).toHaveCount(0);
+
+  const suggest = page.getByRole('button', { name: /Suggest how to tackle this/ });
+  await expect(suggest).toBeVisible();
+  await suggest.click();
+
+  await expect(page.getByText('Draft the outline')).toBeVisible({ timeout: 15_000 });
+  // Sent as an ordinary user turn, so it shows in the thread...
+  await expect(page.getByText(/How should I approach this\?/)).toBeVisible();
+  // ...and the empty-state opener is gone once the thread has messages.
+  await expect(suggest).toHaveCount(0);
+});
+
 test('each todo keeps its own thread', async ({ page }) => {
   await signup(page);
   await openTodo(page, 'First task');

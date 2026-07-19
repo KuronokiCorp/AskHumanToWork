@@ -26,12 +26,13 @@ env:
   # Later: SMTP_HOST/SMTP_PORT/SMTP_FROM (+ creds) for reminder emails,
   #        ANTHROPIC_API_KEY for Claude-written morning digests
   #
-  # Per-todo AI assistant — deployed but dark until these exist. The panel
-  # hides itself and /api/usage reports billingEnabled:false without them.
-  #   MINIMAX_API_KEY     enables the assistant
+  # Per-todo AI assistant — MINIMAX_API_KEY is set (see the secret ref below),
+  # so the panel is live. Billing overage stays off until Stripe is wired:
   #   STRIPE_SECRET_KEY   } enable overage past the free allowance; needs a
   #   STRIPE_AI_PRICE_ID  } Billing Meter + metered price created first
   #   STRIPE_WEBHOOK_SECRET
+  # Without those, /api/usage reports billingEnabled:false and users are simply
+  # cut off at the free allowance rather than billed.
   # Create each with `firebase apphosting:secrets:set NAME` BEFORE adding its
   # `- variable:/secret:` pair below — a reference to a missing secret stops
   # the backend from starting.
@@ -41,3 +42,11 @@ env:
     secret: SESSION_SECRET
   - variable: ENCRYPTION_KEY
     secret: ENCRYPTION_KEY
+  - variable: MINIMAX_API_KEY
+    secret: MINIMAX_API_KEY
+  # Account region must match the key: api.minimax.io and api.minimaxi.com are
+  # separate accounts with separate keys, and the wrong pairing fails auth.
+  - variable: MINIMAX_BASE_URL
+    value: "https://api.minimax.io/v1"
+  - variable: MINIMAX_MODEL
+    value: "MiniMax-M3"
