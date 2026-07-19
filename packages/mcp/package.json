@@ -34,7 +34,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "publish:npm": "bash -c 'set -a; . ../../.env 2>/dev/null; set +a; npm publish --access public \"--//registry.npmjs.org/:_authToken=$NPM_TOKEN\"'"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",
