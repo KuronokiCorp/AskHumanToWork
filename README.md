@@ -315,9 +315,9 @@ Code users can run it with "run the feature-tester".
 
 If AskHumanToWork saves you some follow-ups, you can buy me a coffee:
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/kuronoki)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/vectechlimited)
 
-<img src="docs/images/buymeacoffee-qr.png" alt="Buy Me a Coffee QR code for buymeacoffee.com/kuronoki" width="180">
+<img src="docs/images/buymeacoffee-qr.png" alt="Buy Me a Coffee QR code for buymeacoffee.com/vectechlimited" width="180">
 
 ## Roadmap
 
