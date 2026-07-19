@@ -22,6 +22,12 @@ export const env = {
     port: Number(process.env.SMTP_PORT ?? 1025),
     from: process.env.SMTP_FROM ?? 'reminders@askhumantowork.local',
   },
+  /**
+   * Per-minute cap on credential endpoints (signup/login/reset) — brute-force
+   * protection. Configurable only so the e2e suite, which signs up a fresh
+   * user per test from one IP, can raise it; leave it alone in production.
+   */
+  authRateLimitMax: Number(process.env.AUTH_RATE_LIMIT_MAX ?? 10),
   /** Per-todo AI assistant. Without a key the chat endpoints report unavailable. */
   minimax: {
     apiKey: process.env.MINIMAX_API_KEY ?? '',

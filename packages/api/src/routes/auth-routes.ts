@@ -10,7 +10,9 @@ import { env } from '../env.js';
 
 export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
   // Credential endpoints get strict limits (brute-force protection).
-  const strictLimit = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
+  const strictLimit = {
+    config: { rateLimit: { max: env.authRateLimitMax, timeWindow: '1 minute' } },
+  };
 
   app.post('/api/auth/signup', strictLimit, async (req, reply) => {
     const input = signupInputSchema.parse(req.body);

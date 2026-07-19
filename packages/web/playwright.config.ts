@@ -12,6 +12,8 @@ import { defineConfig, devices } from '@playwright/test';
 const E2E_DB = 'askhumantowork_e2e';
 const E2E_DATABASE_URL = `postgres://localhost:5432/${E2E_DB}`;
 const API_PORT = 3100;
+/** Local stand-in for MiniMax so the chat suite is free, offline and deterministic. */
+const MINIMAX_STUB_PORT = 9110;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -48,7 +50,21 @@ export default defineConfig({
       env: {
         DATABASE_URL: E2E_DATABASE_URL,
         API_PORT: String(API_PORT),
+        // Points the assistant at the stub below. Without a key the chat
+        // endpoints 503 and the panel hides itself, so the suite needs one.
+        MINIMAX_API_KEY: 'e2e-stub-key',
+        MINIMAX_BASE_URL: `http://localhost:${MINIMAX_STUB_PORT}/v1`,
+        // Every test signs up an isolated user from one IP, which trips the
+        // production 10/min credential limit once the suite is large enough.
+        AUTH_RATE_LIMIT_MAX: '1000',
       },
+    },
+    {
+      command: `node tests/e2e/minimax-stub.mjs`,
+      url: `http://localhost:${MINIMAX_STUB_PORT}/health`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 15_000,
+      env: { MINIMAX_STUB_PORT: String(MINIMAX_STUB_PORT) },
     },
     {
       command: 'pnpm exec vite --port 5175 --strictPort',
