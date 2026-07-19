@@ -72,6 +72,9 @@ describe('billingPeriodStart', () => {
 
 describe('constants', () => {
   it('expresses the free allowance in micro-USD', () => {
-    expect(FREE_ALLOWANCE_MICROS / MICROS_PER_USD).toBe(1);
+    // A whole number of micros, and small enough that open signup without
+    // billing can't run up a meaningful bill on our provider account.
+    expect(Number.isInteger(FREE_ALLOWANCE_MICROS)).toBe(true);
+    expect(FREE_ALLOWANCE_MICROS / MICROS_PER_USD).toBeLessThanOrEqual(1);
   });
 });

@@ -11,8 +11,18 @@ import type { AppContext } from './context.js';
  */
 export const MICROS_PER_USD = 1_000_000;
 
-/** Free AI spend per user per calendar month, before a card is required. */
-export const FREE_ALLOWANCE_MICROS = 1 * MICROS_PER_USD; // $1.00
+/**
+ * Free AI spend per user per calendar month, before a card is required.
+ *
+ * Every micro of this is real money on *our* provider account, and with signup
+ * open and no Stripe keys configured there is no way to recoup it — so the
+ * default is deliberately small and the ceiling is an env var, tunable without
+ * a code change once billing is actually wired up.
+ */
+export const FREE_ALLOWANCE_MICROS = (() => {
+  const raw = Number(process.env.AI_FREE_ALLOWANCE_MICROS);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 0.2 * MICROS_PER_USD; // $0.20
+})();
 
 /**
  * Multiplier applied to our raw provider cost to get the user-facing price.
