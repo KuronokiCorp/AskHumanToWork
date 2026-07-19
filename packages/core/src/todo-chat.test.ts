@@ -106,6 +106,20 @@ describe('TodoChatService', () => {
     expect(req.system).toContain('high');
   });
 
+  it('instructs the model to keep answers short and on-task', async () => {
+    const user = await makeUser();
+    const { todo } = await new TodoService(ctx).create(user.id, { title: 'Ship the migration' });
+    const model = stubModel();
+    await new TodoChatService(ctx, model).send(user.id, todo.id, 'anything');
+
+    // Both guards are prompt-only, so a silent edit that drops them would
+    // otherwise show up as cost and off-topic answers in production.
+    const { system } = model.lastRequest as { system: string };
+    expect(system).toContain('under 200 words');
+    expect(system).toContain('Stay on this task');
+    expect(system).toMatch(/do not answer it/);
+  });
+
   it('replays prior turns so the conversation has memory', async () => {
     const user = await makeUser();
     const { todo } = await new TodoService(ctx).create(user.id, { title: 'Plan offsite' });

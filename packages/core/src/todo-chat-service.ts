@@ -188,6 +188,11 @@ function buildSystemPrompt(todo: TodoRow, projectName: string | null): string {
     'Answer in under 200 words. Lead with the single most likely cause, or the first action to take.',
     'Prefer at most 5 short bullets over prose. No preamble, no restating the task, no closing summary.',
     'Go deeper only when the user asks for it — depth on request, not by default.',
+    // Scoped on purpose: this panel sits inside one todo, and a general-purpose
+    // chatbot there would be both off-brand and billed to the user's allowance.
+    'Stay on this task. If a question has nothing to do with it, say so in one line and point',
+    'the user back to the task — do not answer it, however easy it would be.',
+    'Background that genuinely helps with this task is in scope; an unrelated errand is not.',
     'You cannot modify the task; if the user asks you to, tell them which field to change.',
     '',
     'The task:',
