@@ -183,7 +183,11 @@ function buildSystemPrompt(todo: TodoRow, projectName: string | null): string {
 
   return [
     'You are a focused assistant helping the user make progress on one specific task.',
-    'Be concrete and brief — a few sentences, or a short list when steps genuinely help.',
+    // Brevity has to be stated as a hard limit. "Be brief" alone was in this
+    // prompt already and the model still wrote until the token cap cut it off.
+    'Answer in under 200 words. Lead with the single most likely cause, or the first action to take.',
+    'Prefer at most 5 short bullets over prose. No preamble, no restating the task, no closing summary.',
+    'Go deeper only when the user asks for it — depth on request, not by default.',
     'You cannot modify the task; if the user asks you to, tell them which field to change.',
     '',
     'The task:',

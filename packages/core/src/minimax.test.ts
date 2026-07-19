@@ -4,7 +4,7 @@
  * and a non-zero `base_resp.status_code`, so a naive `res.ok` check passes.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { MiniMaxChatClient, minimaxCostMicros } from './minimax.js';
+import { MiniMaxChatClient, minimaxCostMicros, trimToCompleteThought } from './minimax.js';
 import { UserFacingError } from './todo-service.js';
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -172,5 +172,62 @@ describe('MiniMaxChatClient', () => {
     await expect(
       client(fetchImpl).complete({ system: 's', messages: [{ role: 'user', content: 'hi' }] }),
     ).rejects.toThrow(/temporarily unavailable/);
+  });
+});
+
+describe('trimToCompleteThought', () => {
+  it('drops a severed final line', () => {
+    const cut = ['## Next steps', '1. **Check the plist** — confirm the bundle id.', '2. **No internet on'].join('\n');
+    expect(trimToCompleteThought(cut)).toBe(
+      '## Next steps\n1. **Check the plist** — confirm the bundle id.',
+    );
+  });
+
+  it('closes emphasis left unbalanced inside a kept line', () => {
+    expect(trimToCompleteThought('Do this first. **Then')).toBe('Do this first.');
+  });
+
+  it('leaves an already-complete reply untouched', () => {
+    const whole = '- One thing.\n- Another thing.';
+    expect(trimToCompleteThought(whole)).toBe(whole);
+  });
+
+  it('keeps the first line even when nothing in the reply is complete', () => {
+    expect(trimToCompleteThought('a half thought')).toBe('a half thought');
+  });
+});
+
+describe('MiniMaxChatClient truncation', () => {
+  const longCut = 'Start here. Then check the cert.\n- **Provisioning profile out of';
+
+  it('trims the tail when the cap cut the reply off', async () => {
+    const fetchImpl = (async () =>
+      jsonResponse({
+        choices: [{ finish_reason: 'length', message: { content: longCut } }],
+        usage: { prompt_tokens: 10, completion_tokens: 2048 },
+        base_resp: { status_code: 0 },
+      })) as unknown as typeof fetch;
+
+    const out = await client(fetchImpl).complete({
+      system: 's',
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+    expect(out.content).toBe('Start here. Then check the cert.');
+  });
+
+  it('leaves the reply alone when the model chose to stop', async () => {
+    // Same trailing fragment, but finish_reason 'stop' means the model meant it.
+    const fetchImpl = (async () =>
+      jsonResponse({
+        choices: [{ finish_reason: 'stop', message: { content: longCut } }],
+        usage: { prompt_tokens: 10, completion_tokens: 20 },
+        base_resp: { status_code: 0 },
+      })) as unknown as typeof fetch;
+
+    const out = await client(fetchImpl).complete({
+      system: 's',
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+    expect(out.content).toBe(longCut);
   });
 });

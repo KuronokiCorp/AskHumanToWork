@@ -16,7 +16,12 @@ import { UserFacingError } from './todo-service.js';
 /** International host. Mainland China accounts use https://api.minimaxi.com/v1. */
 const DEFAULT_BASE_URL = 'https://api.minimax.io/v1';
 const DEFAULT_MODEL = 'MiniMax-M3';
-const DEFAULT_MAX_TOKENS = 1_024;
+/**
+ * Safety net, not a target. The system prompt asks for a short answer; this is
+ * only what stops a runaway one. It was 1024, which MiniMax-M3 hit routinely —
+ * every substantial reply came back severed mid-sentence.
+ */
+const DEFAULT_MAX_TOKENS = 2_048;
 
 /** Shown for any upstream failure; the specific reason goes to the server log. */
 const UNAVAILABLE = 'The assistant is temporarily unavailable. Please try again.';
@@ -80,8 +85,34 @@ export interface MiniMaxConfig {
   fetchImpl?: typeof fetch;
 }
 
+/**
+ * Cut a length-capped reply back to its last whole thought.
+ *
+ * A completion stopped by the token cap ends mid-sentence, and — worse — often
+ * mid-`**`, so React-Markdown renders literal asterisks at the tail. Dropping
+ * the dangling fragment costs the user a little content they were never going
+ * to get intact, and buys a reply that reads as finished.
+ */
+export function trimToCompleteThought(text: string): string {
+  const lines = text.split('\n');
+  const whole = (s: string) =>
+    /[.!?:;)\]}"'`]$/.test(s) && (s.match(/\*\*/g)?.length ?? 0) % 2 === 0;
+  // Never strip past the first line: a reply with no complete line at all is
+  // better shown short than blanked.
+  while (lines.length > 1 && !whole(lines[lines.length - 1]!.trim())) lines.pop();
+
+  let out = lines.join('\n').trimEnd();
+  // A stray opener can still survive inside a kept line (e.g. a heading).
+  if ((out.match(/\*\*/g)?.length ?? 0) % 2 === 1) {
+    out = out.slice(0, out.lastIndexOf('**')).trimEnd();
+  }
+  return out;
+}
+
 interface MiniMaxResponse {
   choices?: {
+    /** 'length' means the token cap cut the reply off, not the model finishing. */
+    finish_reason?: string;
     message?: {
       content?: string;
       /** The model's own reasoning trace — deliberately not shown to the user. */
@@ -143,11 +174,17 @@ export class MiniMaxChatClient implements ChatModelClient {
       throw new UserFacingError(UNAVAILABLE);
     }
 
-    const content = body.choices?.[0]?.message?.content?.trim();
-    if (!content) {
+    const raw = body.choices?.[0]?.message?.content?.trim();
+    if (!raw) {
       console.error('[minimax] empty completion');
       throw new UserFacingError(UNAVAILABLE);
     }
+
+    // Only reshape what the cap actually severed — a reply the model chose to
+    // end must reach the user exactly as written.
+    const truncated = body.choices?.[0]?.finish_reason === 'length';
+    const content = truncated ? trimToCompleteThought(raw) : raw;
+    if (truncated) console.warn(`[minimax] hit the ${this.maxTokens}-token cap; tail trimmed`);
 
     const inputTokens = body.usage?.prompt_tokens ?? 0;
     const outputTokens = body.usage?.completion_tokens ?? 0;
