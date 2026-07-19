@@ -33,7 +33,10 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post('/api/auth/login', strictLimit, async (req, reply) => {
     const input = loginInputSchema.parse(req.body);
     const user = await ctx.db.query.users.findFirst({ where: eq(users.email, input.email) });
-    if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
+    // An OAuth-only account has no hash. Reject it here rather than letting a
+    // null reach bcrypt.compare, and return the same generic error so the
+    // response doesn't reveal which emails are registered.
+    if (!user || !user.passwordHash || !(await bcrypt.compare(input.password, user.passwordHash))) {
       return reply.code(401).send({ error: 'invalid credentials' });
     }
     if (input.mode === 'token') {

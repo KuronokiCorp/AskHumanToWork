@@ -14,6 +14,7 @@ const E2E_DATABASE_URL = `postgres://localhost:5432/${E2E_DB}`;
 const API_PORT = 3100;
 /** Local stand-in for MiniMax so the chat suite is free, offline and deterministic. */
 const MINIMAX_STUB_PORT = 9110;
+const SUPABASE_STUB_PORT = 9120;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -57,6 +58,11 @@ export default defineConfig({
         // Every test signs up an isolated user from one IP, which trips the
         // production 10/min credential limit once the suite is large enough.
         AUTH_RATE_LIMIT_MAX: '1000',
+        // Social sign-in against the stub below; without these the
+        // provider list is empty and no buttons render.
+        SUPABASE_URL: `http://localhost:${SUPABASE_STUB_PORT}`,
+        SUPABASE_ANON_KEY: 'e2e-stub-anon-key',
+        WEB_BASE_URL: 'http://localhost:5175',
       },
     },
     {
@@ -65,6 +71,13 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 15_000,
       env: { MINIMAX_STUB_PORT: String(MINIMAX_STUB_PORT) },
+    },
+    {
+      command: `node tests/e2e/supabase-stub.mjs`,
+      url: `http://localhost:${SUPABASE_STUB_PORT}/health`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 15_000,
+      env: { SUPABASE_STUB_PORT: String(SUPABASE_STUB_PORT) },
     },
     {
       command: 'pnpm exec vite --port 5175 --strictPort',

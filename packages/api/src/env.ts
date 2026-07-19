@@ -35,6 +35,16 @@ export const env = {
     baseUrl: process.env.MINIMAX_BASE_URL ?? 'https://api.minimax.io/v1',
     model: process.env.MINIMAX_MODEL ?? 'MiniMax-M3',
   },
+  /**
+   * Supabase Auth, used *only* to broker social sign-in. Sessions stay ours:
+   * the callback trades a Supabase token for a normal web_sessions cookie, so
+   * password login, the mobile device tokens and MCP PATs are untouched.
+   * Without a URL + anon key the social buttons simply don't render.
+   */
+  supabase: {
+    url: (process.env.SUPABASE_URL ?? '').replace(/\/$/, ''),
+    anonKey: process.env.SUPABASE_ANON_KEY ?? '',
+  },
   vapid: {
     publicKey: process.env.VAPID_PUBLIC_KEY ?? '',
     privateKey: process.env.VAPID_PRIVATE_KEY ?? '',

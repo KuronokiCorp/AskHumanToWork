@@ -32,7 +32,10 @@ export const billingStatusEnum = pgEnum('billing_status', ['none', 'active', 'pa
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
+  // Null for accounts that only ever signed in through an OAuth provider —
+  // they have no password to compare against, and must not be able to log in
+  // through the password route at all.
+  passwordHash: text('password_hash'),
   timezone: text('timezone').notNull().default('UTC'),
   // { channels: { email: true, web_push: true }, quietHours: { start: "22:00", end: "08:00" } }
   notificationPrefs: jsonb('notification_prefs')

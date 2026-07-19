@@ -71,6 +71,14 @@ export const api = {
   signup: (email: string, password: string, timezone: string) =>
     call('POST', '/api/auth/signup', { email, password, timezone }),
   logout: () => call('POST', '/api/auth/logout'),
+  oauthProviders: () =>
+    call<{ providers: { provider: 'google' | 'github'; url: string }[] }>(
+      'GET',
+      '/api/auth/oauth/providers',
+    ),
+  /** Trade the Supabase access token from the redirect for one of our sessions. */
+  oauthCallback: (accessToken: string) =>
+    call<Me & { created: boolean }>('POST', '/api/auth/oauth/callback', { accessToken }),
   forgotPassword: (email: string) => call('POST', '/api/auth/forgot-password', { email }),
   resetPassword: (uid: string, exp: number, sig: string, password: string) =>
     call('POST', '/api/auth/reset-password', { uid, exp, sig, password }),

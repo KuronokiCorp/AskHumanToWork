@@ -125,6 +125,9 @@ export default function App() {
           <Route path="/" element={<Navigate to="/agenda" replace />} />
           {/* Signed in but still on the marketing/login paths → go to the app. */}
           <Route path="/login" element={<Navigate to="/agenda" replace />} />
+          {/* Already-signed-in users can land here by revisiting the OAuth
+              hand-off URL; it has no view of its own. */}
+          <Route path="/auth/callback" element={<Navigate to="/agenda" replace />} />
           <Route path="/landing" element={<Navigate to="/agenda" replace />} />
           <Route path="/agenda" element={<AgendaView />} />
           {/* Old time views now live inside Agenda; redirect for bookmarks + digest email links */}
