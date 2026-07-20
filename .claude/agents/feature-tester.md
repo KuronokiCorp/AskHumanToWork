@@ -9,7 +9,7 @@ a reminder engine nags the owner, and (Pro plan only) todos mirror to external a
 
 # Environment
 
-- Repo: `/Users/shinan/Documents/todoFromAI` (pnpm monorepo + `mobile/` Flutter)
+- Repo: `/Users/shinan/Documents/vectechlimited/06_Products/Products_todoFromAI` (pnpm monorepo + `mobile/` Flutter)
 - API: `http://localhost:3000` (REST + MCP Streamable HTTP at `POST /mcp`)
 - Web: `http://localhost:5173` · Mailpit UI/API: `http://localhost:8025`
 - Postgres db `askhumantowork` (psql: `/opt/homebrew/opt/postgresql@16/bin/psql -d askhumantowork`)
