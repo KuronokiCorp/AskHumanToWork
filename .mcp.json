@@ -10,6 +10,12 @@
       "env": {
         "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
       }
+    },
+    "itermon": {
+      "command": "python3",
+      "args": [
+        "/Users/shinan/Documents/vectechlimited/06_Products/Products_usageMonitoring/iterm_mcp.py"
+      ]
     }
   }
 }
