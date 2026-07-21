@@ -36,6 +36,18 @@ month, after which pushed dailies older than the previous month are pruned (git 
 keeps every day — retrieve via `git log --follow` / `git show`). The product head owns
 this cadence. Full rule: `../../03_Operations/Worklog/README.md`.
 
+## Who's who — callsigns & numbers
+Address anyone by callsign or role slug; registry of record: `../../05_Organization/Employee_Registry.md`.
+
+| Callsign | Role | No. |
+|---|---|---|
+| **Henry** | `todofromai-product-manager` (head) | v274001 |
+| **Roberto Carlos** | `todofromai-release-manager` | v374001 |
+| **Lehmann** | `todofromai-cfo` (functional line → group-cfo Buffon) | v374002 |
+| **Neville** | `todofromai-support-manager` | v374003 |
+| **Rivaldo** | `todofromai-developer` | v474001 |
+| **Toldo** | `todofromai-tester` | v474002 |
+
 ## Standing orders (company rule 13)
 A session opened here with NO specific command is not idle: the product head reads its
 worklog, runs any calendar duty due (KPI/P&L/rollup dates), then works the TOP item of
