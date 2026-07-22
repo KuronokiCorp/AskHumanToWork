@@ -63,8 +63,7 @@ env:
     value: "https://qkswdfvtoozelocwuccf.supabase.co"
   # Modern publishable key (sb_publishable_...) — the drop-in successor to the
   # legacy JWT anon key; the auth endpoints accept it as `apikey` the same way.
-  # ⚠️ Do NOT merge until Google is enabled in Supabase → Authentication →
-  # Providers — the button list is hardcoded, so a deployed key with disabled
-  # providers renders sign-in buttons that dead-end at Supabase.
+  # Google enabled in Supabase 23 Jul 2026; the API only offers providers
+  # Supabase reports enabled, so flipping GitHub on later needs no redeploy.
   - variable: SUPABASE_ANON_KEY
     value: "sb_publishable_iAjSRih2v6YUpdB0jqyqUA_gLVzo5N0"
