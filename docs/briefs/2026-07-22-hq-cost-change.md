@@ -17,3 +17,10 @@ in session. This note is the product-side record so no one here is surprised.
 **Verify rollout:** Firebase console → App Hosting → askhumantowork backend → latest
 rollout should include this commit (if the backend is not GitHub-connected, someone must
 run `firebase deploy --only apphosting` once — counts as the CEO-approved deploy).
+
+---
+**Rollout verified 22 Jul (Lehmann):** live Cloud Run service shows minScale=0 on
+revision `askhumantowork-build-2026-07-22-004` — backend is GitHub-connected and
+auto-deployed commit `27434a1`; no manual deploy needed. Billing breakdown confirms
+the ~¥40/month steady-state estimate (¥41 is APAC egress, which remains). Details:
+`docs/worklog/todofromai-cfo/2026-07-22.md`.
