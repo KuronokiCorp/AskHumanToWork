@@ -1,3 +1,5 @@
+RETIRED 22 Jul 2026 (CEO decision, rule 8): content folded into todofromai-tester "Toldo" v474002 at HQ.
+
 ---
 name: feature-tester
 description: End-to-end feature tester for AskHumanToWork. Use to run regression passes over the API, MCP server, reminder engine, plan gating, and web UI, and to report a pass/fail matrix after changes.
