@@ -2,7 +2,11 @@
 # Deploy: firebase apphosting:backends:create (connect this GitHub repo), or
 #         firebase deploy --only apphosting once the backend exists.
 runConfig:
-  minInstances: 1        # reminders/digest cron must always be running
+  # CEO decision 22 Jul 2026: scale-to-zero — the always-on instance was ~90% of the
+  # GCP bill's idle cost. CONSEQUENCE: the in-process reminders/digest cron only runs
+  # while an instance is awake; until the Cloud Scheduler refactor (see BACKLOG.md #1)
+  # reminders may be delayed when the service is scaled to zero.
+  minInstances: 0
   maxInstances: 3
   memoryMiB: 512
   concurrency: 80
