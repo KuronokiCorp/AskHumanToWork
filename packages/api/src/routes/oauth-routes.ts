@@ -21,6 +21,38 @@ import { env } from '../env.js';
 const PROVIDERS = ['google', 'github'] as const;
 type Provider = (typeof PROVIDERS)[number];
 
+/**
+ * Which of PROVIDERS Supabase will actually accept, per its public settings
+ * endpoint — a provider we list but Supabase has disabled renders a button
+ * that dead-ends mid-dance. Cached briefly so the login page doesn't cost a
+ * Supabase round trip per view; `null` means the lookup failed, in which case
+ * we offer everything rather than hide sign-in over a transient error.
+ */
+let enabledCache: { at: number; enabled: Set<Provider> | null } = { at: 0, enabled: null };
+const SETTINGS_TTL_MS = 5 * 60_000;
+
+async function enabledProviders(log: {
+  warn: (obj: unknown, msg: string) => void;
+}): Promise<Set<Provider> | null> {
+  const now = Date.now();
+  if (enabledCache.at && now - enabledCache.at < SETTINGS_TTL_MS) return enabledCache.enabled;
+  try {
+    const res = await fetch(`${env.supabase.url}/auth/v1/settings`, {
+      headers: { apikey: env.supabase.anonKey },
+    });
+    if (!res.ok) throw new Error(`settings returned ${res.status}`);
+    const body = (await res.json()) as { external?: Record<string, boolean> };
+    enabledCache = {
+      at: now,
+      enabled: new Set(PROVIDERS.filter((p) => body.external?.[p])),
+    };
+  } catch (err) {
+    log.warn({ err }, 'could not read supabase auth settings; offering all providers');
+    enabledCache = { at: now, enabled: null };
+  }
+  return enabledCache.enabled;
+}
+
 const callbackSchema = z.object({
   accessToken: z.string().min(1).max(4096),
 });
@@ -40,10 +72,11 @@ export function registerOAuthRoutes(app: FastifyInstance, ctx: AppContext) {
    * the browser to. The web app renders buttons from this, so an unconfigured
    * deployment shows nothing rather than a button that dead-ends.
    */
-  app.get('/api/auth/oauth/providers', async () => {
+  app.get('/api/auth/oauth/providers', async (req) => {
     if (!configured) return { providers: [] };
+    const enabled = await enabledProviders(req.log);
     return {
-      providers: PROVIDERS.map((provider) => ({
+      providers: PROVIDERS.filter((p) => !enabled || enabled.has(p)).map((provider) => ({
         provider,
         // Supabase bounces the browser back to the web app with the token in
         // the URL fragment; the SPA reads it and posts it to the callback.
