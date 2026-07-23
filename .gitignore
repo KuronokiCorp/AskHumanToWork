@@ -16,3 +16,4 @@ mobile/android/.gradle/
 # playwright
 packages/web/test-results/
 packages/web/playwright-report/
+.env.todoai
