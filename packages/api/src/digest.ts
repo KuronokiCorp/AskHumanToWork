@@ -42,7 +42,7 @@ function line(t: Todo): string {
   return `- ${t.title}${time ? ` — ${time}` : ''}${who}`;
 }
 
-function templateDigest(agenda: Agenda): string {
+export function templateDigest(agenda: Agenda): string {
   const parts: string[] = [`Good morning! ${agenda.summary}`, ''];
   if (agenda.overdue.length) {
     parts.push('🔥 Overdue:', ...agenda.overdue.slice(0, 5).map(line), '');
