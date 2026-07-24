@@ -53,8 +53,9 @@ env:
   # the endpoint returns 503 (disabled), so it is safe to ship this ref ahead of
   # the secret existing only if the secret is created before the reference is
   # required; create the secret first, then uncomment the pair below.
-  # - variable: CRON_SECRET
-  #   secret: CRON_SECRET
+  # CRON_SECRET created + IAM-granted 2026-07-24 (CEO-approved release) — ref live:
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
   - variable: MINIMAX_API_KEY
     secret: MINIMAX_API_KEY
   # Account region must match the key: api.minimax.io and api.minimaxi.com are
