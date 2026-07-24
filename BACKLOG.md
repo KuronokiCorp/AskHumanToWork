@@ -23,40 +23,33 @@ failure. Top item is what a no-command session works on.*
    uncomment its ref in apphosting.yaml, (b) `develop`→`main` release deploy, (c) create the
    Cloud Scheduler job per the runbook. Release prep is Roberto Carlos's to stage; publish/deploy
    stays CEO-approved (rule 6). Until the secret is set the endpoint returns 503 (safe no-op).
-2. **Web UI regeneration in the Claude Code aesthetic (CEO instruction 2026-07-24):**
-   regenerate the app's pages referencing Claude Code's visual style (dense, terminal-inflected,
-   monospace accents, restrained dark palette). Current UI: dark zinc sidebar shell
-   (`packages/web/src/App.tsx`) with Agenda / AI Inbox / All todos + per-project views + Settings.
-   Scope wave 1: app shell + Agenda + todo lists + TodoDetail; wave 2: Settings + Landing.
-   Do this TOGETHER with item 3 (one IA change, one redesign pass — not two repaints).
-   **Sequencing: starts only after item 1 (approved cron release) has shipped `develop`→`main`** —
-   the redesign touches `packages/web` broadly and must not entangle the pending release.
-   Open (rule-16 question to CEO in brief): whether Landing/mobile are in scope.
-3. **Project-grouped Dashboard replaces the "AI Inbox" tab (CEO instruction 2026-07-24):**
-   the tab is actually named "AI Inbox" (`/inbox-ai`, `TodosView view="ai"` — a flat filter on
-   `source: 'ai'`; CEO judges it not useful). Build a Dashboard that lists open todos grouped
-   by project (project header + count + due-soon/overdue signals), remove the AI Inbox nav item,
-   and keep AI provenance visible as a badge/filter instead of a dedicated tab (PM call — the
-   "which agent asked for this" signal is core to the product and must not be lost).
-   Open (rule-16 question to CEO in brief): whether Dashboard becomes the post-login home.
-4. **Default due date = creation + 1 week when not set (CEO instruction 2026-07-24):**
+2. **[PHASE 1] Web UI regeneration in the Claude Code aesthetic + project Dashboard as home
+   (CEO instruction 2026-07-24; CEO decisions 2026-07-24: Q1=A app pages + Landing, mobile out
+   this round; Q2=A Dashboard is the post-login home, Agenda stays as a tab):**
+   one redesign pass covering the IA change and the repaint. Removes the "AI Inbox" tab
+   (`/inbox-ai` redirects to `/dashboard`), keeps `source: ai` provenance as badge/filter,
+   and surfaces the EXISTING per-todo AI assistant in lists/dashboard (visibility half of Q3=B).
+   Spec: `docs/specs/ui-regen-claude-code-and-project-dashboard.md`. Estimate M–L (3–5 dev
+   sessions). **Sequencing: starts only after item 1 (approved cron release) has shipped
+   `develop`→`main`** — touches `packages/web` broadly, must not entangle the pending release.
+   Includes Toldo verifying the AI assistant answers in PRODUCTION with a real login.
+3. **[PHASE 1] Default due date = creation + 1 week when not set (CEO instruction 2026-07-24):**
    today `TodoService.create` leaves `dueAt = null` when neither `dueAt` nor `dueNatural` is
-   given (`packages/core/src/todo-service.ts` resolveDue/create; only recurrence derives one).
-   Change: absent due → default `now + 7 days` (09:00 user-local, matching the recurrence
-   baseline convention); an EXPLICIT `dueAt: null` stays null so due-less todos remain possible.
-   Applies to all creation sources (web QuickAdd, API/MCP `source: ai`) — flag in release notes:
-   agent-created todos will start getting due dates, which feeds the reminder ladder and digest
-   (expect more reminder volume). Update dedup-hash expectations + tests.
-5. **AI-feature visibility — confirm & surface (CEO observation 2026-07-24 says "AI still not
-   added"; code says otherwise):** per-todo AI chat (MiniMax-M3) IS built and merged to `main` —
-   `packages/core/src/minimax.ts`, `packages/core/src/todo-chat-service.ts`,
-   `packages/api/src/routes/chat-routes.ts`, `packages/web/src/components/TodoChat.tsx`
-   (rendered in `TodoDetail.tsx`) — and `apphosting.yaml` actively references the
-   `MINIMAX_API_KEY` secret (backend boots, prod is up, so the secret exists). BUT it only
-   appears inside a single todo's detail page, and `TodoChat` renders NOTHING on 503 — invisible
-   when unconfigured and easy to miss even when live. Actions: (a) verify the assistant answers
-   in production with a real login; (b) surface AI affordances in the new Dashboard/lists;
-   (c) rule-16 question to CEO on what "AI 功能" should mean beyond the per-todo chat.
-6. Issue/intake triage with Neville: open user issues ranked
-7. Release hygiene with Roberto Carlos: changelog current, next version scoped, CEO-ready
-8. Test-coverage review with Toldo: consumer-path gaps
+   given (`packages/core/src/todo-service.ts`). Change: absent due → default `+7 days at 09:00
+   user-local` (matches recurrence baseline convention); EXPLICIT `dueAt: null` stays null.
+   All creation sources (web QuickAdd, API/MCP `source: ai`) — release notes must flag that
+   agent-created todos start getting due dates → reminder/digest volume rises.
+   Spec: `docs/specs/default-due-one-week.md`. Estimate S (1 dev session). Ships with item 2's
+   release train (independent code paths, same version).
+4. **[PHASE 2] AI create & breakdown — natural language → structured todos + subtasks
+   (CEO decision 2026-07-24, Q3=B):** new `POST /api/ai/plan` (MiniMax, same billing/allowance
+   path as chat) proposing structured todos from natural language, human-confirmed before
+   creation; "Break down" on a todo proposing subtasks. Requires a DATA-MODEL change — todos
+   have no parent/subtask support today (`packages/db/src/schema.ts`): add nullable `parentId`
+   self-reference + migration + serializer/UI handling. Spec:
+   `docs/specs/ai-plan-and-breakdown.md`. Estimate L (4–6 dev sessions + migration).
+   **PM phasing call (authorized by coordinator 2026-07-24): delivered as phase 2 after item 2
+   ships** — rationale in brief `docs/briefs/2026-07-24-ceo-decisions-and-specs.md`.
+5. Issue/intake triage with Neville: open user issues ranked
+6. Release hygiene with Roberto Carlos: changelog current, next version scoped, CEO-ready
+7. Test-coverage review with Toldo: consumer-path gaps
