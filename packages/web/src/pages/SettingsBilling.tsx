@@ -29,7 +29,7 @@ export default function SettingsBilling() {
   if (query.isLoading) {
     return (
       <div className="mx-auto max-w-[680px] px-8 py-10">
-        <div className="h-48 animate-pulse rounded-2xl bg-zinc-200/50" />
+        <div className="h-48 animate-pulse rounded-xl bg-zinc-200/50" />
       </div>
     );
   }
@@ -54,10 +54,10 @@ export default function SettingsBilling() {
       />
 
       <SectionCard title={`Usage — ${periodLabel}`}>
-        <div className="mb-2 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+        <div className="mb-2 h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
           <div
             className={`h-full rounded-full transition-all ${
-              usedPct >= 100 ? 'bg-amber-500' : 'bg-violet-500'
+              usedPct >= 100 ? 'bg-amber-500' : 'bg-accent-500'
             }`}
             style={{ width: `${usedPct}%` }}
           />
@@ -66,13 +66,13 @@ export default function SettingsBilling() {
           <span className="text-zinc-500">
             {usd(usage.usedMicros)} of {usd(usage.freeAllowanceMicros)} free allowance
           </span>
-          <span className="font-medium text-zinc-700">
+          <span className="font-medium text-zinc-300">
             {usage.messageCount} {usage.messageCount === 1 ? 'reply' : 'replies'}
           </span>
         </div>
 
         {usage.billedMicros > 0 && (
-          <p className="mt-3 border-t border-zinc-100 pt-3 text-[13px] text-zinc-600">
+          <p className="mt-3 border-t border-zinc-100 pt-3 text-[13px] text-zinc-400">
             <span className="font-semibold">{usd(usage.billedMicros)}</span> beyond the free
             allowance this month — billed at the end of the period.
           </p>

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Hash, Plus } from 'lucide-react';
+import { Clock, Hash } from 'lucide-react';
 import { api } from '../api';
 import { projectAutoColor } from './ui';
 
@@ -128,12 +128,12 @@ export default function QuickAdd({ defaultProject }: { defaultProject?: string }
             priority: parsed.priority,
           });
         }}
-        className={`flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-1 shadow-card transition-all ${
-          focused ? 'border-violet-400 ring-4 ring-violet-500/10' : 'border-zinc-200/80'
+        className={`flex items-center gap-2.5 rounded-xl border bg-white/[0.03] px-4 py-1 transition-all ${
+          focused ? 'border-accent-500/60 ring-4 ring-accent-500/10' : 'border-white/10'
         }`}
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-500 text-white">
-          <Plus size={14} strokeWidth={3} />
+        <span className="shrink-0 select-none text-[15px] font-bold text-accent-400" aria-hidden>
+          &gt;
         </span>
         <input
           ref={inputRef}
@@ -164,21 +164,21 @@ export default function QuickAdd({ defaultProject }: { defaultProject?: string }
           }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="Add a todo…"
-          className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-zinc-400"
+          placeholder="add a todo…  @due  #project  !1-3"
+          className="w-full bg-transparent py-2.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-500"
         />
         {focused && (
-          <div className="hidden shrink-0 items-center gap-1 text-[10.5px] text-zinc-400 sm:flex">
-            <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 py-px">@due</kbd>
-            <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 py-px">#project</kbd>
-            <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 py-px">!1-3</kbd>
+          <div className="hidden shrink-0 items-center gap-1 text-[10.5px] text-zinc-500 sm:flex">
+            <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 py-px">@due</kbd>
+            <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 py-px">#project</kbd>
+            <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 py-px">!1-3</kbd>
           </div>
         )}
       </form>
 
       {open && (
-        <div className="absolute left-10 top-full z-20 mt-1.5 min-w-[240px] rounded-xl border border-zinc-200/80 bg-white p-1 shadow-card-hover">
-          <div className="px-2.5 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-zinc-400">
+        <div className="absolute left-10 top-full z-20 mt-1.5 min-w-[240px] rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-xl shadow-black/40">
+          <div className="px-2.5 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-zinc-500">
             {trigger?.kind === 'project' ? 'Projects' : 'Due date'}
           </div>
           {suggestions.map((s, i) => (
@@ -192,26 +192,26 @@ export default function QuickAdd({ defaultProject }: { defaultProject?: string }
               }}
               onMouseEnter={() => setSelIdx(i)}
               className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors ${
-                i === selIdx ? 'bg-violet-50 text-violet-800' : 'text-zinc-700'
+                i === selIdx ? 'bg-accent-500/15 text-accent-200' : 'text-zinc-300'
               }`}
             >
               {s.color ? (
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color }} />
               ) : trigger?.kind === 'project' ? (
-                <Hash size={12} className="shrink-0 text-zinc-400" />
+                <Hash size={12} className="shrink-0 text-zinc-500" />
               ) : (
-                <Clock size={12} className="shrink-0 text-zinc-400" />
+                <Clock size={12} className="shrink-0 text-zinc-500" />
               )}
               {s.label}
             </button>
           ))}
-          <div className="border-t border-zinc-100 px-2.5 pb-1 pt-1.5 text-[10.5px] text-zinc-400">
+          <div className="border-t border-white/10 px-2.5 pb-1 pt-1.5 text-[10.5px] text-zinc-500">
             ↑↓ choose · Enter/Tab accept · Esc dismiss
           </div>
         </div>
       )}
 
-      {error && <div className="mt-1.5 px-1 text-xs text-red-600">{error}</div>}
+      {error && <div className="mt-1.5 px-1 text-xs text-red-400">{error}</div>}
     </div>
   );
 }

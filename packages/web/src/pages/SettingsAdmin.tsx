@@ -4,7 +4,7 @@ import { api } from '../api';
 import { Button, Chip, PageHeader, SectionCard, inputCls } from '../components/ui';
 
 const selectCls =
-  'rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-sm shadow-card outline-none transition focus:border-violet-400';
+  'rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2 text-sm  outline-none transition focus:border-accent-500/60';
 
 export default function SettingsAdmin() {
   const qc = useQueryClient();
@@ -39,13 +39,13 @@ export default function SettingsAdmin() {
       <SectionCard title="Where to register OAuth apps">
         <div className="space-y-1.5 text-xs leading-relaxed text-zinc-500">
           <div>
-            <b className="text-zinc-700">Microsoft To Do:</b> Azure Portal → App registrations → delegated permission{' '}
-            <code className="rounded bg-zinc-100 px-1">Tasks.ReadWrite</code> +{' '}
-            <code className="rounded bg-zinc-100 px-1">offline_access</code>
+            <b className="text-zinc-300">Microsoft To Do:</b> Azure Portal → App registrations → delegated permission{' '}
+            <code className="rounded bg-white/[0.06] px-1">Tasks.ReadWrite</code> +{' '}
+            <code className="rounded bg-white/[0.06] px-1">offline_access</code>
           </div>
           <div>
-            <b className="text-zinc-700">Google Tasks:</b> Google Cloud Console → OAuth consent + credentials → scope{' '}
-            <code className="rounded bg-zinc-100 px-1">https://www.googleapis.com/auth/tasks</code>
+            <b className="text-zinc-300">Google Tasks:</b> Google Cloud Console → OAuth consent + credentials → scope{' '}
+            <code className="rounded bg-white/[0.06] px-1">https://www.googleapis.com/auth/tasks</code>
           </div>
         </div>
       </SectionCard>
@@ -94,7 +94,7 @@ function PlanForm() {
           Set plan
         </Button>
       </form>
-      {result && <div className="mt-2 text-xs text-zinc-600">{result}</div>}
+      {result && <div className="mt-2 text-xs text-zinc-400">{result}</div>}
     </SectionCard>
   );
 }

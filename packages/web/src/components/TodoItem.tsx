@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Ban, Bot, Check, Clock, Flag, Hash, Repeat } from 'lucide-react';
+import { Check, Clock, Flag, Hash, Repeat, Sparkles, Zap } from 'lucide-react';
 import type { Todo } from '@askhumantowork/shared';
 import { api } from '../api';
-import { Chip } from './ui';
+import { Chip, StatusChip } from './ui';
 
-const priorityTone = { 1: 'text-sky-500', 2: 'text-amber-500', 3: 'text-red-500' } as const;
+const priorityTone = { 1: 'text-sky-400', 2: 'text-amber-400', 3: 'text-red-400' } as const;
 
 export function dueLabel(t: Todo): { text: string; overdue: boolean } {
   if (!t.dueAt) return { text: '', overdue: false };
@@ -33,10 +33,12 @@ export default function TodoItem({ todo }: { todo: Todo }) {
 
   const done = todo.status === 'done';
   const due = dueLabel(todo);
+  // Which device/app captured it — the token name is authoritative; fall back to agent type.
+  const agentName = todo.createdByToken ?? todo.createdByAgent ?? 'agent';
 
   return (
     <div
-      className={`group flex items-start gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3.5 shadow-card transition-all hover:-translate-y-px hover:shadow-card-hover ${done ? 'opacity-70' : ''}`}
+      className={`group flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 transition-colors hover:border-white/20 hover:bg-white/[0.04] ${done ? 'opacity-60' : ''}`}
     >
       <button
         onClick={() => (done ? reopen.mutate() : complete.mutate())}
@@ -44,26 +46,38 @@ export default function TodoItem({ todo }: { todo: Todo }) {
         className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-all ${
           done
             ? 'animate-pop border-emerald-500 bg-emerald-500 text-white'
-            : 'border-zinc-300 text-transparent hover:border-violet-500 hover:bg-violet-50 hover:text-violet-400'
+            : 'border-white/25 text-transparent hover:border-accent-500 hover:bg-accent-500/10 hover:text-accent-400'
         }`}
       >
         <Check size={13} strokeWidth={3.5} />
       </button>
 
       <div className="min-w-0 flex-1">
-        <Link to={`/t/${todo.id}`} className="block">
-          <div className={`flex items-center gap-1.5 truncate text-[14.5px] ${done ? 'text-zinc-400 line-through' : 'font-medium text-zinc-800 group-hover:text-zinc-950'}`}>
-            {todo.priority > 0 && (
-              <Flag
-                size={13}
-                strokeWidth={2.5}
-                className={`shrink-0 ${priorityTone[todo.priority as 1 | 2 | 3]}`}
-                fill="currentColor"
-              />
-            )}
-            <span className="truncate">{todo.title}</span>
-          </div>
-        </Link>
+        <div className="flex items-center gap-1.5">
+          <Link to={`/t/${todo.id}`} className="block min-w-0 flex-1">
+            <div className={`flex items-center gap-1.5 truncate text-[14px] ${done ? 'text-zinc-500 line-through' : 'font-medium text-zinc-200 group-hover:text-white'}`}>
+              {todo.priority > 0 && (
+                <Flag
+                  size={13}
+                  strokeWidth={2.5}
+                  className={`shrink-0 ${priorityTone[todo.priority as 1 | 2 | 3]}`}
+                  fill="currentColor"
+                />
+              )}
+              <span className="truncate">{todo.title}</span>
+            </div>
+          </Link>
+          {/* Q3=B — surface the per-todo AI assistant right from the row. */}
+          {!done && (
+            <Link
+              to={`/t/${todo.id}#assistant`}
+              title="Ask AI about this"
+              className="shrink-0 rounded-md p-1 text-zinc-600 opacity-0 transition-colors hover:bg-white/5 hover:text-accent-400 focus-visible:opacity-100 focus-visible:text-accent-400 group-hover:opacity-100"
+            >
+              <Sparkles size={14} />
+            </Link>
+          )}
+        </div>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {due.text && (
@@ -72,11 +86,10 @@ export default function TodoItem({ todo }: { todo: Todo }) {
               {due.text}
             </Chip>
           )}
-          {todo.status === 'blocked' && (
-            <Chip tone="amber" title={todo.blockedReason ?? 'Blocked'}>
-              <Ban size={11} strokeWidth={2.5} />
-              blocked{todo.blockedReason ? `: ${todo.blockedReason}` : ''}
-            </Chip>
+          {(todo.status === 'doing' || todo.status === 'blocked') && (
+            <span title={todo.status === 'blocked' ? (todo.blockedReason ?? 'Blocked') : undefined}>
+              <StatusChip status={todo.status} />
+            </span>
           )}
           {todo.recurrence && (
             <Chip tone="emerald" title={`Repeats ${todo.recurrence.display}`}>
@@ -95,27 +108,16 @@ export default function TodoItem({ todo }: { todo: Todo }) {
               <Chip>{tag}</Chip>
             </Link>
           ))}
-          {todo.source === 'ai' &&
-            (() => {
-              // Which device/app this came from — the token name is authoritative;
-              // fall back to the client-reported agent type.
-              const device = todo.createdByToken ?? todo.createdByAgent ?? 'AI';
-              const agentType =
-                todo.createdByAgent && todo.createdByAgent !== todo.createdByToken
-                  ? todo.createdByAgent
-                  : null;
-              return (
-                <Chip tone="violet" title={`Captured from ${device}${agentType ? ` (${agentType})` : ''}`}>
-                  <Bot size={11} strokeWidth={2.5} />
-                  {device}
-                  {agentType && <span className="font-normal text-violet-400">· {agentType}</span>}
-                </Chip>
-              );
-            })()}
+          {todo.source === 'ai' && (
+            <Chip tone="accent" title={`Captured by ${agentName}`}>
+              <Zap size={11} strokeWidth={2.5} fill="currentColor" />
+              {agentName}
+            </Chip>
+          )}
         </div>
 
         {todo.source === 'ai' && todo.originContext && (
-          <div className="mt-1.5 border-l-2 border-zinc-200 pl-2 text-[12px] leading-snug text-zinc-500">
+          <div className="mt-1.5 border-l-2 border-white/10 pl-2 text-[12px] leading-snug text-zinc-500">
             {todo.originContext}
           </div>
         )}

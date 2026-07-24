@@ -26,7 +26,7 @@ async function openTodo(page: Page, title: string): Promise<string> {
   expect(res.status()).toBe(201);
   const { todo } = (await res.json()) as { todo: { id: string } };
   await page.goto(`/t/${todo.id}`);
-  await expect(page.getByText('Ask about this task')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('AI assistant')).toBeVisible({ timeout: 15_000 });
   return todo.id;
 }
 
@@ -79,7 +79,7 @@ test('a failed call surfaces an error and leaves no orphaned turn', async ({ pag
   // The user's turn must not persist — otherwise it renders with no reply and
   // is replayed as context on every later turn.
   await page.goto(`/t/${id}`);
-  await expect(page.getByText('Ask about this task')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('AI assistant')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('please break')).toHaveCount(0);
 });
 

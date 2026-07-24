@@ -42,10 +42,10 @@ function Section({
 }) {
   if (todos.length === 0) return null;
   const labelTone = {
-    red: 'text-red-600',
-    violet: 'text-violet-600',
-    amber: 'text-amber-600',
-    zinc: 'text-zinc-500',
+    red: 'text-red-400',
+    violet: 'text-accent-400',
+    amber: 'text-amber-400',
+    zinc: 'text-zinc-400',
   }[tone];
   return (
     <div className="mb-6">
@@ -54,7 +54,7 @@ function Section({
         {label}
         <span className="text-zinc-400">· {todos.length}</span>
         {onClear && (
-          <button onClick={onClear} title="Clear day filter" className="text-zinc-400 hover:text-zinc-700">
+          <button onClick={onClear} title="Clear day filter" className="text-zinc-500 hover:text-zinc-200">
             <X size={12} strokeWidth={3} />
           </button>
         )}
@@ -110,11 +110,11 @@ function BigMonthCalendar({
   const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
   const weeks = Math.ceil((first.getDay() + daysInMonth) / 7);
 
-  const navBtn = 'rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700';
+  const navBtn = 'rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200';
 
   return (
-    <div data-testid="agenda-calendar" className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-card">
-      <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-3">
+    <div data-testid="agenda-calendar" className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+      <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-3">
         <div className="text-[15px] font-semibold tracking-tight">{monthLabel}</div>
         <div className="ml-auto flex items-center gap-1">
           <button
@@ -129,7 +129,7 @@ function BigMonthCalendar({
               onCursor(new Date());
               onSelect(null);
             }}
-            className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[12px] font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
+            className="rounded-lg border border-white/15 px-2.5 py-1 text-[12px] font-medium text-zinc-300 transition-colors hover:bg-white/5"
           >
             Today
           </button>
@@ -143,7 +143,7 @@ function BigMonthCalendar({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border-b border-zinc-100">
+      <div className="grid grid-cols-7 border-b border-white/[0.06]">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
           <div key={d} className="py-2 text-center text-[10.5px] font-semibold uppercase tracking-wider text-zinc-400">
             {d}
@@ -184,7 +184,7 @@ function BigMonthCalendar({
         return (
           <div
             key={w}
-            className={`relative grid grid-cols-7 ${w > 0 ? 'border-t border-zinc-100' : ''}`}
+            className={`relative grid grid-cols-7 ${w > 0 ? 'border-t border-white/[0.06]' : ''}`}
             style={{ minHeight: BAR_TOP + MAX_LANES * BAR_H + 24 }}
           >
             {Array.from({ length: 7 }, (_, c) => {
@@ -201,23 +201,23 @@ function BigMonthCalendar({
                   tabIndex={0}
                   onClick={() => onSelect(isSelected ? null : key)}
                   onKeyDown={(e) => e.key === 'Enter' && onSelect(isSelected ? null : key)}
-                  className={`relative cursor-pointer border-zinc-100 transition-colors ${
+                  className={`relative cursor-pointer border-white/[0.06] transition-colors ${
                     c > 0 ? 'border-l' : ''
                   } ${
                     isSelected
-                      ? 'bg-violet-50/80 ring-2 ring-inset ring-violet-400'
+                      ? 'bg-accent-500/10 ring-2 ring-inset ring-accent-500/70'
                       : inMonth
-                        ? 'bg-white hover:bg-zinc-50/70'
-                        : 'bg-zinc-50/50 hover:bg-zinc-50'
+                        ? 'bg-transparent hover:bg-white/[0.03]'
+                        : 'bg-white/[0.015] hover:bg-white/[0.03]'
                   }`}
                 >
                   <span
                     className={`absolute left-1/2 top-1.5 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full text-[12px] ${
                       isToday
-                        ? 'bg-violet-600 font-semibold text-white'
+                        ? 'bg-accent-500 font-semibold text-white'
                         : inMonth
-                          ? 'font-medium text-zinc-700'
-                          : 'text-zinc-300'
+                          ? 'font-medium text-zinc-300'
+                          : 'text-zinc-600'
                     }`}
                   >
                     {d.getDate()}
@@ -391,9 +391,9 @@ export default function AgendaView() {
       <QuickAdd />
 
       {query.isLoading ? (
-        <div className="h-[560px] animate-pulse rounded-2xl bg-zinc-200/50" />
+        <div className="h-[560px] animate-pulse rounded-xl bg-white/[0.03]" />
       ) : query.isError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50/60 p-5 text-[13px] text-red-700">
+        <div className="rounded-xl border border-red-500/25 bg-red-500/[0.08] p-5 text-[13px] text-red-300">
           Couldn't load your todos — {(query.error as Error).message}. Retrying automatically…
         </div>
       ) : (
@@ -433,7 +433,7 @@ export default function AgendaView() {
                     {selectedDay && (
                       <button
                         onClick={() => setSelectedDay(null)}
-                        className="ml-2 font-medium text-violet-600 hover:underline"
+                        className="ml-2 font-medium text-accent-400 hover:underline"
                       >
                         Back to today
                       </button>
@@ -455,7 +455,7 @@ export default function AgendaView() {
                     <span className="text-[10.5px] font-semibold uppercase tracking-wider text-zinc-400">
                       Done today · {doneToday.length}
                     </span>
-                    <span className="h-px flex-1 bg-zinc-200" />
+                    <span className="h-px flex-1 bg-white/10" />
                   </div>
                   <div className="flex flex-col gap-2">
                     {doneToday.map((t) => (

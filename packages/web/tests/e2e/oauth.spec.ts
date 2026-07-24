@@ -16,7 +16,7 @@ test('signing in with Google lands in the app with a real session', async ({ pag
 
   // Straight into the app: the token came back in the fragment, was exchanged
   // for a session, and the shell rendered.
-  await page.waitForURL(/\/agenda/, { timeout: 30_000 });
+  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
   await expect(page.getByText('google-user@stub.local')).toBeVisible();
 
   // Our own session cookie, not a Supabase one.
@@ -32,7 +32,7 @@ test('signing in with Google lands in the app with a real session', async ({ pag
 test('the access token never survives in the URL', async ({ page }) => {
   await page.goto('/login');
   await page.getByRole('link', { name: /Continue with GitHub/ }).click();
-  await page.waitForURL(/\/agenda/, { timeout: 30_000 });
+  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
 
   // The fragment is stripped before anything can copy or bookmark it.
   expect(page.url()).not.toContain('access_token');
@@ -54,14 +54,14 @@ test('a forged token is refused', async ({ page }) => {
 test('signing in twice reuses the account instead of duplicating it', async ({ page }) => {
   await page.goto('/login');
   await page.getByRole('link', { name: /Continue with Google/ }).click();
-  await page.waitForURL(/\/agenda/, { timeout: 30_000 });
+  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
 
   const first = await (await page.request.get('/api/auth/me')).json();
   await page.request.post('/api/auth/logout');
 
   await page.goto('/login');
   await page.getByRole('link', { name: /Continue with Google/ }).click();
-  await page.waitForURL(/\/agenda/, { timeout: 30_000 });
+  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
 
   const second = await (await page.request.get('/api/auth/me')).json();
   expect(second.id).toBe(first.id);
