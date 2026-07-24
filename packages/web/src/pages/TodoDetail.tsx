@@ -37,22 +37,22 @@ export default function TodoDetail() {
   });
 
   if (query.isLoading)
-    return <div className="mx-auto max-w-[680px] px-8 py-10"><div className="h-64 animate-pulse rounded-2xl bg-zinc-200/50" /></div>;
+    return <div className="mx-auto max-w-[680px] px-8 py-10"><div className="h-64 animate-pulse rounded-xl bg-white/[0.03]" /></div>;
   if (query.isError || !query.data)
-    return <div className="p-10 text-sm text-red-600">Todo not found.</div>;
+    return <div className="p-10 text-sm text-red-400">Todo not found.</div>;
   const t = query.data.todo;
-  const statusTone = t.status === 'done' ? 'emerald' : t.status === 'cancelled' ? 'zinc' : 'violet';
+  const statusTone = t.status === 'done' ? 'emerald' : t.status === 'cancelled' ? 'zinc' : 'accent';
 
   return (
     <div className="mx-auto max-w-[680px] px-8 py-10 animate-fade-in">
       <button
         onClick={() => navigate(-1)}
-        className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+        className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 transition-colors hover:text-zinc-100"
       >
         <ArrowLeft size={14} /> Back
       </button>
 
-      <div className="rounded-2xl border border-zinc-200/80 bg-white p-7 shadow-card">
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-7">
         {editing ? (
           <form
             onSubmit={(e) => {
@@ -126,7 +126,7 @@ export default function TodoDetail() {
           </form>
         ) : (
           <div className="flex items-start justify-between gap-4">
-            <h1 className={`text-[21px] font-bold leading-snug tracking-tight ${t.status === 'done' ? 'text-zinc-400 line-through' : ''}`}>
+            <h1 className={`text-[21px] font-bold leading-snug tracking-tight ${t.status === 'done' ? 'text-zinc-500 line-through' : 'text-zinc-100'}`}>
               {t.title}
             </h1>
             <div className="flex shrink-0 items-center gap-2">
@@ -143,7 +143,7 @@ export default function TodoDetail() {
                   setEditing(true);
                 }}
                 title="Edit"
-                className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
               >
                 <Pencil size={15} />
               </button>
@@ -153,15 +153,15 @@ export default function TodoDetail() {
         )}
 
         {t.source === 'ai' && (
-          <div className="mt-5 rounded-xl border border-violet-200/70 bg-gradient-to-r from-violet-50 to-indigo-50/60 p-4">
-            <div className="flex items-center gap-2 text-[13px] font-semibold text-violet-800">
+          <div className="mt-5 rounded-xl border border-accent-500/25 bg-accent-500/[0.07] p-4">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-accent-200">
               <Bot size={15} /> Captured from {t.createdByToken ?? t.createdByAgent ?? 'an AI agent'}
               {t.createdByToken && t.createdByAgent && t.createdByAgent !== t.createdByToken && (
-                <span className="font-normal text-violet-500/70">({t.createdByAgent})</span>
+                <span className="font-normal text-accent-300/70">({t.createdByAgent})</span>
               )}
             </div>
             {t.originContext && (
-              <div className="mt-1.5 text-[13px] italic leading-relaxed text-violet-700/90">“{t.originContext}”</div>
+              <div className="mt-1.5 text-[13px] italic leading-relaxed text-accent-300/90">“{t.originContext}”</div>
             )}
           </div>
         )}

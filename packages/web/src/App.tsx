@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import {
   Bell,
-  Bot,
   CalendarCheck,
   CreditCard,
   KeyRound,
+  LayoutDashboard,
   LayoutList,
   LogOut,
   Plug,
@@ -16,6 +16,7 @@ import { Logo } from './components/ui';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
 import ResetPassword from './pages/ResetPassword';
+import DashboardView from './pages/DashboardView';
 import TodosView from './pages/TodosView';
 import AgendaView from './pages/AgendaView';
 import TodoDetail from './pages/TodoDetail';
@@ -26,8 +27,8 @@ import SettingsAdmin from './pages/SettingsAdmin';
 import SettingsBilling from './pages/SettingsBilling';
 
 const nav = [
+  { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { to: '/agenda', label: 'Agenda', Icon: CalendarCheck },
-  { to: '/inbox-ai', label: 'AI Inbox', Icon: Bot },
   { to: '/all', label: 'All todos', Icon: LayoutList },
 ];
 
@@ -44,7 +45,7 @@ function SideLink({ to, label, Icon }: { to: string; label: string; Icon: typeof
       to={to}
       className={({ isActive }) =>
         `group flex items-center gap-2.5 rounded-lg px-3 py-[7px] text-[13.5px] font-medium transition-colors ${
-          isActive ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+          isActive ? 'bg-accent-500/15 text-accent-300' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
         }`
       }
     >
@@ -78,8 +79,8 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="fixed inset-y-0 flex w-[232px] flex-col gap-0.5 overflow-y-auto bg-zinc-950 p-3">
+    <div className="flex min-h-screen bg-zinc-950 text-zinc-200">
+      <aside className="fixed inset-y-0 flex w-[232px] flex-col gap-0.5 overflow-y-auto border-r border-white/10 bg-zinc-950 p-3">
         <div className="mb-4 flex items-center gap-2.5 px-2 pt-1.5">
           <Logo size={28} />
           <div className="leading-tight">
@@ -122,19 +123,21 @@ export default function App() {
 
       <main className="ml-[232px] flex-1">
         <Routes>
-          <Route path="/" element={<Navigate to="/agenda" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           {/* Signed in but still on the marketing/login paths → go to the app. */}
-          <Route path="/login" element={<Navigate to="/agenda" replace />} />
+          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
           {/* Already-signed-in users can land here by revisiting the OAuth
               hand-off URL; it has no view of its own. */}
-          <Route path="/auth/callback" element={<Navigate to="/agenda" replace />} />
-          <Route path="/landing" element={<Navigate to="/agenda" replace />} />
+          <Route path="/auth/callback" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/landing" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardView />} />
           <Route path="/agenda" element={<AgendaView />} />
           {/* Old time views now live inside Agenda; redirect for bookmarks + digest email links */}
           <Route path="/today" element={<Navigate to="/agenda" replace />} />
           <Route path="/upcoming" element={<Navigate to="/agenda" replace />} />
           <Route path="/overdue" element={<Navigate to="/agenda" replace />} />
-          <Route path="/inbox-ai" element={<TodosView view="ai" />} />
+          {/* AI Inbox retired; kept as a redirect for old bookmarks and digest links. */}
+          <Route path="/inbox-ai" element={<Navigate to="/dashboard" replace />} />
           <Route path="/all" element={<TodosView view="all" />} />
           <Route path="/project/:name" element={<TodosView view="project" />} />
           <Route path="/t/:id" element={<TodoDetail />} />
@@ -159,7 +162,7 @@ function ProjectNav() {
           to={`/project/${encodeURIComponent(p.name)}`}
           className={({ isActive }) =>
             `flex items-center gap-2.5 rounded-lg px-3 py-[7px] text-[13.5px] font-medium transition-colors ${
-              isActive ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+              isActive ? 'bg-accent-500/15 text-accent-300' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
             }`
           }
         >

@@ -103,15 +103,15 @@ export default function SettingsTokens() {
 
       {created && (
         <SectionCard tone="success" title="Token created — copy it now, it won't be shown again">
-          <code className="block select-all break-all rounded-lg bg-white p-2.5 text-xs shadow-card">{created.token}</code>
+          <code className="block select-all break-all rounded-lg bg-white/[0.02] p-2.5 text-xs ">{created.token}</code>
           <div className="mt-3 text-[13px] font-semibold text-emerald-800">Claude Code / Desktop (just a token — no local setup):</div>
-          <pre className="mt-1 overflow-x-auto rounded-lg bg-white p-2.5 text-xs shadow-card">
+          <pre className="mt-1 overflow-x-auto rounded-lg bg-white/[0.02] p-2.5 text-xs ">
 {`claude mcp add heyhuman \\
   --env TODO_API_TOKEN=${created.token} \\
   -- npx -y heyhuman-mcp`}
           </pre>
           <div className="mt-3 text-[13px] font-semibold text-emerald-800">Remote (Streamable HTTP):</div>
-          <pre className="mt-1 overflow-x-auto rounded-lg bg-white p-2.5 text-xs shadow-card">
+          <pre className="mt-1 overflow-x-auto rounded-lg bg-white/[0.02] p-2.5 text-xs ">
 {`URL: ${location.origin}/mcp
 Header: Authorization: Bearer ${created.token}`}
           </pre>
@@ -125,9 +125,9 @@ Header: Authorization: Bearer ${created.token}`}
         {(tokens.data?.tokens ?? []).map((t) => (
           <div
             key={t.id}
-            className="flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3.5 shadow-card"
+            className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3.5 "
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.06] text-zinc-500">
               <KeyRound size={16} />
             </span>
             <div className="min-w-0 flex-1">

@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { Button, Logo, inputCls } from '../components/ui';
+import { Button, Logo } from '../components/ui';
+
+/** Local light input — reset page keeps its light surface (the app itself is dark). */
+const inputCls =
+  'w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10';
 
 /** Landing page for the emailed reset link: /reset-password?uid=..&exp=..&sig=.. */
 export default function ResetPassword() {

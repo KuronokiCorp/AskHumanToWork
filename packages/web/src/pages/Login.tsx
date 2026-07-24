@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { BellRing, Bot, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
-import { Button, Logo, inputCls } from '../components/ui';
+import { Button, Logo } from '../components/ui';
+
+/** Local light input — the login/reset pages keep their light surface (the app itself is dark). */
+const inputCls =
+  'w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10';
 
 /** Brand marks for the social buttons — inlined so the page pulls no remote assets. */
 const providerMeta = {
@@ -90,7 +94,7 @@ export default function Login({ onDone }: { onDone: () => void }) {
       // A full navigation rather than onDone(): the browser is sitting on
       // /auth/callback, which is a hand-off URL with no view behind it, so
       // refetching in place would leave the user on a blank route.
-      .then(() => window.location.replace('/agenda'))
+      .then(() => window.location.replace('/dashboard'))
       .catch((e) => {
         setError(e instanceof Error ? e.message : 'sign-in failed');
         setBusy(false);
@@ -128,7 +132,7 @@ export default function Login({ onDone }: { onDone: () => void }) {
           className="pointer-events-none absolute inset-0 opacity-60"
           style={{
             background:
-              'radial-gradient(ellipse 80% 60% at 20% 0%, rgb(124 58 237 / 0.35), transparent), radial-gradient(ellipse 60% 50% at 100% 100%, rgb(79 70 229 / 0.25), transparent)',
+              'radial-gradient(ellipse 80% 60% at 20% 0%, rgb(204 120 92 / 0.35), transparent), radial-gradient(ellipse 60% 50% at 100% 100%, rgb(143 74 48 / 0.25), transparent)',
           }}
         />
         <div className="relative flex items-center gap-3">
@@ -143,14 +147,14 @@ export default function Login({ onDone }: { onDone: () => void }) {
           <h1 className="max-w-md text-[32px] font-bold leading-tight tracking-tight text-white">
             Your AI remembers.
             <br />
-            <span className="bg-gradient-to-r from-violet-400 to-indigo-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-accent-300 to-accent-500 bg-clip-text text-transparent">
               You get it done.
             </span>
           </h1>
           <div className="mt-9 space-y-5">
             {features.map(({ Icon, title, body }) => (
               <div key={title} className="flex max-w-md gap-3.5">
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-violet-300 ring-1 ring-white/10">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-accent-300 ring-1 ring-white/10">
                   <Icon size={17} />
                 </span>
                 <div>
@@ -246,7 +250,7 @@ export default function Login({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-            className="mt-4 w-full text-center text-[13px] font-medium text-violet-600 hover:text-violet-800"
+            className="mt-4 w-full text-center text-[13px] font-medium text-accent-600 hover:text-accent-700"
           >
             {mode === 'login' ? 'No account? Sign up free' : 'Have an account? Sign in'}
           </button>

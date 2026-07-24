@@ -10,7 +10,7 @@ const capabilityGapNotes: Record<string, string> = {
 };
 
 const selectCls =
-  'rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-sm shadow-card outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10';
+  'rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2 text-sm  outline-none transition focus:border-accent-500/60 focus:ring-4 focus:ring-accent-500/10';
 
 export default function SettingsIntegrations() {
   const qc = useQueryClient();
@@ -66,9 +66,9 @@ export default function SettingsIntegrations() {
           {available.map((p) => (
             <div
               key={p.provider}
-              className="mb-2 flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3.5 shadow-card"
+              className="mb-2 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3.5 "
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.06] text-zinc-500">
                 <Plug size={16} />
               </span>
               <div className="min-w-0 flex-1">
@@ -78,7 +78,7 @@ export default function SettingsIntegrations() {
               {isPro ? (
                 <a
                   href={`/api/integrations/${p.provider}/connect`}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-violet-600 to-violet-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:from-violet-500 active:scale-[0.98]"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-b  px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-accent-600 active:scale-[0.98]"
                 >
                   Connect
                 </a>

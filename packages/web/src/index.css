@@ -45,16 +45,16 @@ body {
   @apply list-decimal space-y-1 pl-5;
 }
 .chat-md strong {
-  @apply font-semibold text-zinc-900;
+  @apply font-semibold text-zinc-100;
 }
 .chat-md a {
-  @apply font-medium text-violet-700 underline;
+  @apply font-medium text-accent-300 underline;
 }
 .chat-md code {
-  @apply rounded bg-zinc-200/70 px-1 py-0.5 text-[12.5px];
+  @apply rounded bg-white/10 px-1 py-0.5 text-[12.5px];
 }
 .chat-md pre {
-  @apply my-2 overflow-x-auto rounded-lg bg-zinc-800 p-3 text-[12.5px] text-zinc-100;
+  @apply my-2 overflow-x-auto rounded-lg bg-black/40 p-3 text-[12.5px] text-zinc-100;
 }
 .chat-md pre code {
   @apply bg-transparent p-0 text-inherit;
@@ -62,7 +62,7 @@ body {
 .chat-md h1,
 .chat-md h2,
 .chat-md h3 {
-  @apply mb-1 mt-3 text-[13.5px] font-semibold text-zinc-900;
+  @apply mb-1 mt-3 text-[13.5px] font-semibold text-zinc-100;
 }
 
 /*

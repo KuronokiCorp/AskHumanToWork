@@ -10,7 +10,7 @@ function urlBase64ToUint8Array(base64: string) {
 }
 
 const timeCls =
-  'rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm shadow-card outline-none focus:border-violet-400';
+  'rounded-lg border border-white/10 bg-white/[0.02] px-2 py-1.5 text-sm  outline-none focus:border-accent-500/60';
 
 export default function SettingsNotifications({ me }: { me: Me }) {
   const qc = useQueryClient();
@@ -59,7 +59,7 @@ export default function SettingsNotifications({ me }: { me: Me }) {
             <label key={ch} className="inline-flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded accent-violet-600"
+                className="h-4 w-4 rounded accent-accent-500"
                 checked={channels[ch] !== false}
                 onChange={(e) =>
                   update.mutate({ ...prefs, channels: { ...channels, [ch]: e.target.checked } })
@@ -85,7 +85,7 @@ export default function SettingsNotifications({ me }: { me: Me }) {
           <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded accent-violet-600"
+              className="h-4 w-4 rounded accent-accent-500"
               checked={prefs.digest?.enabled === true}
               onChange={(e) =>
                 update.mutate({
@@ -97,7 +97,7 @@ export default function SettingsNotifications({ me }: { me: Me }) {
             Enabled
           </label>
           {prefs.digest?.enabled && (
-            <label className="flex items-center gap-2 text-sm text-zinc-600">
+            <label className="flex items-center gap-2 text-sm text-zinc-400">
               at
               <select
                 value={prefs.digest?.hour ?? 8}
@@ -123,7 +123,7 @@ export default function SettingsNotifications({ me }: { me: Me }) {
           <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded accent-violet-600"
+              className="h-4 w-4 rounded accent-accent-500"
               checked={!!quiet}
               onChange={(e) =>
                 update.mutate({
@@ -135,7 +135,7 @@ export default function SettingsNotifications({ me }: { me: Me }) {
             Enabled
           </label>
           {quiet && (
-            <span className="flex items-center gap-2 text-sm text-zinc-600">
+            <span className="flex items-center gap-2 text-sm text-zinc-400">
               <input
                 type="time"
                 value={quiet.start}

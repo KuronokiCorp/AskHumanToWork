@@ -58,15 +58,15 @@ export default function TodoChat({ todoId }: { todoId: string }) {
   const outOfCredit = sendError?.status === 400 && /allowance|card|payment/i.test(sendError.message);
 
   return (
-    <div className="mt-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-card">
+    <div id="assistant" className="mt-4 scroll-mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-6">
       <div className="mb-4 flex items-center gap-2">
-        <Sparkles size={16} className="text-violet-500" />
-        <h2 className="text-sm font-semibold">Ask about this task</h2>
+        <Sparkles size={16} className="text-accent-400" />
+        <h2 className="text-sm font-semibold text-zinc-100">AI assistant</h2>
       </div>
 
       {list.length === 0 && !send.isPending && (
         <div className="mb-4">
-          <p className="text-[13px] leading-relaxed text-zinc-500">
+          <p className="text-[13px] leading-relaxed text-zinc-400">
             Ask how to break this down, what's likely blocking it, or how to word the next step.
           </p>
           {/* Deliberately a click, never automatic on open: every suggestion is a
@@ -79,7 +79,7 @@ export default function TodoChat({ todoId }: { todoId: string }) {
               disabled={send.isPending}
               onClick={() => send.mutate(SUGGEST_PROMPT)}
             >
-              <Sparkles size={14} className="text-violet-500" /> Suggest how to tackle this
+              <Sparkles size={14} className="text-accent-400" /> Suggest how to tackle this
             </Button>
           )}
         </div>
@@ -92,14 +92,14 @@ export default function TodoChat({ todoId }: { todoId: string }) {
             className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
           >
             {m.role === 'user' ? (
-              <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-violet-600 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-white">
+              <div className="max-w-[85%] whitespace-pre-wrap rounded-xl bg-accent-500 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-white">
                 {m.content}
               </div>
             ) : (
               // The model answers in markdown — bold, numbered steps, the odd
               // code span. Rendered rather than printed, or the user reads
               // literal ** around every emphasis.
-              <div className="chat-md max-w-[85%] rounded-2xl bg-zinc-100 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-zinc-700">
+              <div className="chat-md max-w-[85%] rounded-xl bg-white/[0.05] px-3.5 py-2.5 text-[13.5px] leading-relaxed text-zinc-200">
                 <ReactMarkdown>{m.content}</ReactMarkdown>
               </div>
             )}
@@ -107,7 +107,7 @@ export default function TodoChat({ todoId }: { todoId: string }) {
         ))}
         {send.isPending && (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-zinc-100 px-3.5 py-2.5 text-[13.5px] text-zinc-400">
+            <div className="rounded-xl bg-white/[0.05] px-3.5 py-2.5 text-[13.5px] text-zinc-500">
               Thinking…
             </div>
           </div>
@@ -116,7 +116,7 @@ export default function TodoChat({ todoId }: { todoId: string }) {
       </div>
 
       {outOfCredit ? (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-[13px] text-amber-800">
+        <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.08] p-4 text-[13px] text-amber-200">
           {sendError?.message}{' '}
           <Link to="/settings/billing" className="font-semibold underline">
             Manage billing
@@ -145,7 +145,7 @@ export default function TodoChat({ todoId }: { todoId: string }) {
       )}
 
       {sendError && !outOfCredit && (
-        <p className="mt-2 text-xs text-red-600">{sendError.message}</p>
+        <p className="mt-2 text-xs text-red-400">{sendError.message}</p>
       )}
       {send.data && (
         <p className="mt-2 text-[11px] text-zinc-400">
