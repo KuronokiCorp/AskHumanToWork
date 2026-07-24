@@ -21,16 +21,20 @@ failure. Top item is what a no-command session works on.*
    secret + EMAXCONNSESSION rollout failure — full account in
    `docs/briefs/2026-07-24-cron-release-executed.md`).
    Residual: Roberto Carlos to record version/changelog for this release next session.
-2. **[PHASE 1] Web UI regeneration in the Claude Code aesthetic + project Dashboard as home
-   (CEO instruction 2026-07-24; CEO decisions 2026-07-24: Q1=A app pages + Landing, mobile out
-   this round; Q2=A Dashboard is the post-login home, Agenda stays as a tab):**
-   one redesign pass covering the IA change and the repaint. Removes the "AI Inbox" tab
-   (`/inbox-ai` redirects to `/dashboard`), keeps `source: ai` provenance as badge/filter,
-   and surfaces the EXISTING per-todo AI assistant in lists/dashboard (visibility half of Q3=B).
-   Spec: `docs/specs/ui-regen-claude-code-and-project-dashboard.md`. Estimate M–L (3–5 dev
-   sessions). **Sequencing: starts only after item 1 (approved cron release) has shipped
-   `develop`→`main`** — touches `packages/web` broadly, must not entangle the pending release.
-   Includes Toldo verifying the AI assistant answers in PRODUCTION with a real login.
+2. ~~**[PHASE 1] Web UI regeneration (Claude Code aesthetic) + project Dashboard as home**~~
+   — **BUILT + TESTED + REVIEWED + MERGED TO `develop` 2026-07-25; production deploy pending
+   CEO.** Chain: Rivaldo build → Toldo PASS (web e2e 37 / api 12 / core 71 / shared 15, full
+   typecheck) → Samuel APPROVE → Henry ACCEPT → merge `--no-ff` 436c22c → pushed. Delivered
+   the dark repaint + terracotta accent, the project-grouped `DashboardView` as post-login
+   home, AI Inbox retired (`/inbox-ai`→`/dashboard`), `source:ai` provenance badge + source
+   filter, and the surfaced per-todo AI assistant (Q3=B visibility half). **CEO scope update
+   25 Jul honored: the Landing/introduction page is EXCLUDED from the restyle** (kept light;
+   AC5 downgraded to non-regression, its 12 tests green). Spec:
+   `docs/specs/ui-regen-claude-code-and-project-dashboard.md`. Brief:
+   `docs/briefs/2026-07-25-ui-regen-phase1.md`. **CEO decision (rule 16): deploy
+   `develop`→`main`? (recommended: A deploy now)** — see brief.
+   **Residual:** spec §4 production AI-chat verification runs AFTER the deploy (prod still
+   serves old UI); env hit NUL-injection + disk-full (both handled) — flag to ops.
 3. **[PHASE 1] Default due date = creation + 1 week when not set (CEO instruction 2026-07-24):**
    today `TodoService.create` leaves `dueAt = null` when neither `dueAt` nor `dueNatural` is
    given (`packages/core/src/todo-service.ts`). Change: absent due → default `+7 days at 09:00
