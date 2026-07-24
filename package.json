@@ -1,7 +1,7 @@
 {
   "name": "askhumantowork",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Todo hub for heavy AI users — AI agents capture todos via MCP, reliable reminders, mirrors to MS To Do / Google Tasks",
   "packageManager": "pnpm@10.12.4",
   "engines": {
