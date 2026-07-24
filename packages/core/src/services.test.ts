@@ -239,6 +239,86 @@ describe('AgendaService briefing', () => {
   });
 });
 
+describe('default due date (BACKLOG #3: +1 week when unset)', () => {
+  const jstParts = (d: Date) =>
+    Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+        .formatToParts(d)
+        .map((p) => [p.type, p.value]),
+    ) as Record<string, string>;
+
+  it('AC1: no due field → dueAt is today+7d at 09:00 in the user timezone', async () => {
+    const { resolveNaturalDate } = await import('@askhumantowork/shared');
+    const user = await makeUser(); // timezone Asia/Tokyo
+    const svc = new TodoService(ctx);
+    const { todo } = await svc.create(user.id, { title: 'no due given' });
+
+    expect(todo.dueAt).not.toBeNull();
+    const due = new Date(todo.dueAt!);
+    // Independent, tz-aware semantic check: it lands at 09:00 JST.
+    expect(jstParts(due).hour).toBe('09');
+    expect(jstParts(due).minute).toBe('00');
+    // And it is exactly one week past the 09:00-local baseline (not string-compared).
+    const expected = new Date(resolveNaturalDate('today 9am', 'Asia/Tokyo')!.getTime() + 7 * 86_400_000);
+    expect(due.getTime()).toBe(expected.getTime());
+  });
+
+  it('AC2: explicit dueAt:null stays null (due-less todos remain possible)', async () => {
+    const user = await makeUser();
+    const svc = new TodoService(ctx);
+    const { todo } = await svc.create(user.id, { title: 'deliberately due-less', dueAt: null });
+    expect(todo.dueAt).toBeNull();
+  });
+
+  it('AC3: an explicit due (natural or ISO) is untouched by the default', async () => {
+    const user = await makeUser();
+    const svc = new TodoService(ctx);
+    const iso = new Date(Date.now() + 3 * 86_400_000).toISOString();
+    const natural = await svc.create(user.id, { title: 'nat', dueNatural: 'tomorrow 5pm' });
+    const absolute = await svc.create(user.id, { title: 'abs', dueAt: iso });
+    // Neither equals the +7d default: 'tomorrow 5pm' is ~1 day out, the ISO is 3 days out.
+    expect(jstParts(new Date(natural.todo.dueAt!)).hour).toBe('17');
+    expect(new Date(absolute.todo.dueAt!).toISOString()).toBe(iso);
+  });
+
+  it('AC4: a recurring todo with no due keeps its recurrence baseline, not the +7d default', async () => {
+    const { resolveNaturalDate } = await import('@askhumantowork/shared');
+    const user = await makeUser();
+    const svc = new TodoService(ctx);
+    const { todo } = await svc.create(user.id, { title: 'weekly', repeat: 'every monday' });
+    expect(todo.dueAt).not.toBeNull();
+    // First occurrence is derived from the rule (next Monday 09:00), NOT today+7d.
+    const plusSeven = new Date(resolveNaturalDate('today 9am', 'Asia/Tokyo')!.getTime() + 7 * 86_400_000);
+    expect(new Date(todo.dueAt!).getTime()).not.toBe(plusSeven.getTime());
+    expect(jstParts(new Date(todo.dueAt!)).hour).toBe('09');
+  });
+
+  it('AC5: an agent-token create with no due defaults to +7d AND schedules a reminder ladder', async () => {
+    const user = await makeUser();
+    const svc = new TodoService(ctx);
+    const { todo } = await svc.create(
+      user.id,
+      { title: 'agent no-due' },
+      { source: 'ai', agent: 'heyhuman', tokenName: 'laptop' },
+    );
+    expect(todo.source).toBe('ai');
+    const due = new Date(todo.dueAt!);
+    expect(due.getTime()).toBeGreaterThan(Date.now() + 6 * 86_400_000);
+    expect(due.getTime()).toBeLessThan(Date.now() + 8 * 86_400_000);
+    const ladder = await db.query.reminders.findMany({ where: eq(reminders.todoId, todo.id) });
+    expect(ladder.length).toBeGreaterThan(0);
+    expect(ladder.every((r) => r.status === 'pending')).toBe(true);
+  });
+});
+
 describe('ReminderService', () => {
   it('schedules the ladder for a future due date and cancels on complete', async () => {
     const user = await makeUser();

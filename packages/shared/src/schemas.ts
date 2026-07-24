@@ -77,8 +77,12 @@ export const createTodoInputSchema = z.object({
   notes: z.string().max(10_000).optional(),
   /** Natural language due date, resolved server-side in the user's timezone. Preferred. */
   dueNatural: z.string().max(120).optional(),
-  /** Absolute ISO 8601 due date. Used only if dueNatural is absent. */
-  dueAt: z.string().datetime({ offset: true }).optional(),
+  /**
+   * Absolute ISO 8601 due date. Used only if dueNatural is absent.
+   * Pass `null` explicitly to force a due-less todo; omit both due fields and the server
+   * defaults dueAt to one week out (BACKLOG #3).
+   */
+  dueAt: z.string().datetime({ offset: true }).nullable().optional(),
   /** Project name; fuzzy-matched, created if new. */
   project: z.string().max(100).optional(),
   priority: z.number().int().min(0).max(3).optional(),
