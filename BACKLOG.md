@@ -1,6 +1,6 @@
 # BACKLOG — todoFromAI
 
-> **✅ CEO-APPROVED RELEASE (2026-07-24, rule 16):** ship the Cloud Scheduler cron refactor — create `CRON_SECRET`, promote `develop`→`main`, create the Scheduler job per `docs/runbooks/cloud-scheduler.md`. This is the top action.
+> **✅ RELEASE EXECUTED (2026-07-24):** Cloud Scheduler cron refactor is LIVE — `CRON_SECRET` created + IAM-granted, `develop`→`main` released (merge 66b9e89, App Hosting rollout verified), Scheduler job `askhumantowork-cron-tick` created (asia-east1, */10 * * * *) and first run verified per the runbook. Details: `docs/briefs/2026-07-24-cron-release-executed.md`.
 
 > **🟡 CEO DISPATCH (2026-07-24) — FYI:** DeepSeek V4 正式版全量上线,旧接口今日永久停用。
 > No current DeepSeek usage found in this product — note for future model selection; no action needed.
@@ -10,19 +10,14 @@
 its first standing session (rule 13). Anyone proposes via the head; empty backlog = head's
 failure. Top item is what a no-command session works on.*
 
-1. **Cloud Scheduler cron refactor (raised by CEO cost decision 22 Jul):** minInstances
-   is now 0 — the in-process reminders/digest worker only runs while awake. Move due-
-   reminder firing to a Cloud Scheduler job hitting an authenticated endpoint every
-   5–15 min so reminders stay reliable at scale-to-zero. (Rivaldo implements, Toldo
-   verifies delayed-reminder case, Henry reviews.)
-   — **BUILT + VERIFIED + MERGED TO `develop` 2026-07-24** (feature/cloud-scheduler-cron-tick,
-   merge 08eae38). Spec `docs/specs/cloud-scheduler-cron-tick.md`; runbook
-   `docs/runbooks/cloud-scheduler.md`. Toldo PASS (9 api + 71 core + 15 shared green,
-   incl. delayed-reminder, no-double-send race, digest once-per-day, endpoint 503/401/200);
-   Samuel APPROVE; Henry ACCEPT. **REMAINING — CEO decision:** (a) create `CRON_SECRET` secret +
-   uncomment its ref in apphosting.yaml, (b) `develop`→`main` release deploy, (c) create the
-   Cloud Scheduler job per the runbook. Release prep is Roberto Carlos's to stage; publish/deploy
-   stays CEO-approved (rule 6). Until the secret is set the endpoint returns 503 (safe no-op).
+1. ~~**Cloud Scheduler cron refactor**~~ — **DONE & RELEASED 2026-07-24.** Chain: spec →
+   Rivaldo build → Toldo PASS → Samuel APPROVE → Henry ACCEPT → merge 08eae38 to `develop` →
+   CEO approved + chose "execute now" (rule 16) → Henry executed the deploy per
+   `docs/runbooks/cloud-scheduler.md`: `CRON_SECRET` created (IAM mirrored from
+   MINIMAX_API_KEY bindings), ref enabled in apphosting.yaml (1d76e5a), release merge
+   `develop`→`main` 66b9e89, Cloud Scheduler API enabled, job `askhumantowork-cron-tick`
+   created. Endpoint verified: no key → 401, wrong key → 401, Scheduler run → success.
+   Residual: Roberto Carlos to record version/changelog for this release next session.
 2. **[PHASE 1] Web UI regeneration in the Claude Code aesthetic + project Dashboard as home
    (CEO instruction 2026-07-24; CEO decisions 2026-07-24: Q1=A app pages + Landing, mobile out
    this round; Q2=A Dashboard is the post-login home, Agenda stays as a tab):**

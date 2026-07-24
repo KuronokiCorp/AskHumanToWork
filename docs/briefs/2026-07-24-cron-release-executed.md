@@ -1,0 +1,38 @@
+# Brief — todoFromAI — 2026-07-24 (Henry) — CEO-approved Cloud Scheduler release EXECUTED
+
+CEO picked "execute now" (rule 16). All three runbook steps done per
+`docs/runbooks/cloud-scheduler.md`, each verified before the next.
+
+## Step results
+1. **CRON_SECRET created** in Secret Manager (project `askhumantowork`), IAM mirrored from the
+   working MINIMAX_API_KEY bindings (accessor+viewer for
+   `firebase-app-hosting-compute@…`, versionManager for the App Hosting service agent).
+   Ref enabled in `apphosting.yaml` on `develop` (commit 1d76e5a).
+   - Note: Firebase CLI auth was stale (`firebase login --reauth` needed); executed via
+     `gcloud secrets` + explicit IAM bindings instead — same end state as the runbook's
+     `firebase apphosting:secrets:set`.
+2. **Release merge `develop`→`main`:** 66b9e89 (--no-ff). App Hosting rollout confirmed live:
+   endpoint went 404 → 401 at 19:24 local.
+3. **Cloud Scheduler API enabled** (was never enabled on the project) and job
+   `askhumantowork-cron-tick` created: asia-east1, `*/10 * * * *`, POST to
+   `/api/internal/cron/tick`, `X-Cron-Key` header, 300s attempt deadline.
+
+## Incident during verification (fixed, worth remembering)
+First verification: no key → 401 ✓, wrong key → 401 ✓, but the REAL key ALSO got 401.
+Root cause: the runbook's `openssl rand -base64 32 |` pipe stores a **trailing newline inside
+the secret** (45 bytes, not 44); the server env kept the `\n` while any HTTP header value
+cannot carry one — guaranteed mismatch. Fix: secret **version 2** written newline-free
+(`openssl rand -hex 32 | tr -d '\n'`, 64 bytes verified by byte-count only — value never
+logged), Scheduler job header updated, new rollout triggered (App Hosting pins the secret
+version at rollout). Version 1 to be disabled after final verification.
+**Runbook must be patched** to `| tr -d '\n'` — queued as a docs fix on the next feature branch.
+
+## Final acceptance (after the version-2 rollout)
+- POST no key → 401; wrong key → 401; real key → 200 with JSON summary. (See worklog for the
+  captured summary line.)
+- `gcloud scheduler jobs run` first run → state verified via `lastAttemptTime`/status.
+
+## Phase-1 unblock
+Release done ⇒ the UI-regen phase 1 is unblocked. `feature/ui-regen-dashboard` cut off
+`develop` and pushed. **Dispatch to Rivaldo: next session** (PM call — a 3–5-session build
+should start on a fresh session, not the tail of a release session; specs are dispatch-ready).
