@@ -13,6 +13,14 @@ failure. Top item is what a no-command session works on.*
    reminder firing to a Cloud Scheduler job hitting an authenticated endpoint every
    5–15 min so reminders stay reliable at scale-to-zero. (Rivaldo implements, Toldo
    verifies delayed-reminder case, Henry reviews.)
+   — **BUILT + VERIFIED + MERGED TO `develop` 2026-07-24** (feature/cloud-scheduler-cron-tick,
+   merge 08eae38). Spec `docs/specs/cloud-scheduler-cron-tick.md`; runbook
+   `docs/runbooks/cloud-scheduler.md`. Toldo PASS (9 api + 71 core + 15 shared green,
+   incl. delayed-reminder, no-double-send race, digest once-per-day, endpoint 503/401/200);
+   Samuel APPROVE; Henry ACCEPT. **REMAINING — CEO decision:** (a) create `CRON_SECRET` secret +
+   uncomment its ref in apphosting.yaml, (b) `develop`→`main` release deploy, (c) create the
+   Cloud Scheduler job per the runbook. Release prep is Roberto Carlos's to stage; publish/deploy
+   stays CEO-approved (rule 6). Until the secret is set the endpoint returns 503 (safe no-op).
 2. Issue/intake triage with Neville: open user issues ranked
 3. Release hygiene with Roberto Carlos: changelog current, next version scoped, CEO-ready
 4. Test-coverage review with Toldo: consumer-path gaps
