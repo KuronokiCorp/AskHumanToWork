@@ -1,5 +1,7 @@
 # BACKLOG — todoFromAI
 
+> **✅ CEO-APPROVED RELEASE (2026-07-24, rule 16):** ship the Cloud Scheduler cron refactor — create `CRON_SECRET`, promote `develop`→`main`, create the Scheduler job per `docs/runbooks/cloud-scheduler.md`. This is the top action.
+
 > **🟡 CEO DISPATCH (2026-07-24) — FYI:** DeepSeek V4 正式版全量上线,旧接口今日永久停用。
 > No current DeepSeek usage found in this product — note for future model selection; no action needed.
 > Full dispatch: `../../03_Operations/Dispatches/2026-07-24-deepseek-v4.md`.
