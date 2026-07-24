@@ -19,6 +19,8 @@ import { sha256 } from './crypto.js';
 import { enqueueTodoSync } from './integrations/outbox.js';
 
 const DEDUP_WINDOW_MS = 10 * 60_000;
+// A todo created with no due date at all defaults to this many days out (at 09:00 local).
+const DEFAULT_DUE_DAYS = 7;
 
 export interface CreateTodoResult {
   todo: Todo;
@@ -79,7 +81,21 @@ export class TodoService {
     scope?: TokenProjectScope | null,
   ): Promise<CreateTodoResult> {
     const user = await this.getUser(userId);
-    let dueAt = this.resolveDue(input, user.timezone) ?? null;
+    // `resolveDue` returns undefined ONLY when no due was expressed at all — distinct from an
+    // explicit dueAt:null (which stays null, a deliberately due-less todo). A due-less,
+    // non-recurring todo defaults to one week out at 09:00 in the user's timezone (the same
+    // baseline convention the recurrence branch uses); a recurring one is left null here so its
+    // rule derives the first occurrence below. The default fills ABSENCE, it never overrides intent.
+    const resolvedDue = this.resolveDue(input, user.timezone);
+    let dueAt: Date | null;
+    if (resolvedDue !== undefined) {
+      dueAt = resolvedDue;
+    } else if (input.repeat) {
+      dueAt = null;
+    } else {
+      const baseline = resolveNaturalDate('today 9am', user.timezone) ?? new Date();
+      dueAt = new Date(baseline.getTime() + DEFAULT_DUE_DAYS * 24 * 60 * 60 * 1000);
+    }
 
     let project = input.project
       ? await this.projectSvc.resolveByName(userId, input.project)

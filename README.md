@@ -146,6 +146,8 @@ its own personal diff automatically.
 ### 6. Watch a reminder fire
 
 Reminders ladder automatically: **1 day before → 1 hour before → at due → daily overdue nudges**.
+A todo created without any due date defaults to **one week out at 09:00 in your timezone** (so it
+still reminds); pass `dueNatural`/`due_at` for a real deadline, or `dueAt: null` to keep it due-less.
 To see one in 20 seconds:
 
 ```bash

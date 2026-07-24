@@ -55,7 +55,7 @@ export function createTodoMcpServer(client: TodoClient): McpServer {
         .string()
         .max(120)
         .optional()
-        .describe('Due date in natural language, e.g. "friday 5pm", "in 3 days", "tomorrow morning". Preferred over due_at.'),
+        .describe('Due date in natural language, e.g. "friday 5pm", "in 3 days", "tomorrow morning". Preferred over due_at. If you omit both due fields the todo defaults to one week out at 09:00 in the user\'s timezone (and will remind) — pass due_natural to set a real deadline instead.'),
       due_at: z.string().optional().describe('Absolute ISO 8601 due date. Only if you already have an exact instant.'),
       project: z.string().max(100).optional().describe('Project name; fuzzy-matched to existing projects, created if new'),
       priority: z.number().int().min(0).max(3).optional().describe('0=none 1=low 2=medium 3=high'),

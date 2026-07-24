@@ -1,6 +1,6 @@
 {
   "name": "heyhuman-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "HeyHuman MCP connector — let Claude (or any MCP client) capture todos into HeyHuman and remind you until they are done. Thin HTTP client for the hosted API; no database required.",
   "type": "module",
   "main": "./dist/index.js",

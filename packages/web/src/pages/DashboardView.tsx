@@ -1,0 +1,157 @@
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { ArrowRight, LayoutDashboard } from 'lucide-react';
+import type { Project, Todo } from '@askhumantowork/shared';
+import { api } from '../api';
+import QuickAdd from '../components/QuickAdd';
+import TodoItem from '../components/TodoItem';
+import { EmptyState, PageHeader, projectAutoColor } from '../components/ui';
+
+/** How often to poll for remote changes (agents adding todos over MCP). */
+const SYNC_INTERVAL_MS = 15_000;
+/** Todos shown per project group before a "+ n more" link. */
+const PER_GROUP = 8;
+
+const isOpen = (t: Todo) => t.status === 'open' || t.status === 'doing' || t.status === 'blocked';
+const isOverdue = (t: Todo) => !!t.dueAt && new Date(t.dueAt) < new Date() && isOpen(t);
+
+/** dueAt ASC (NULLS LAST), then priority desc. */
+function byDueThenPriority(a: Todo, b: Todo): number {
+  const ad = a.dueAt ? new Date(a.dueAt).getTime() : Infinity;
+  const bd = b.dueAt ? new Date(b.dueAt).getTime() : Infinity;
+  if (ad !== bd) return ad - bd;
+  return b.priority - a.priority;
+}
+
+type Group = {
+  key: string;
+  name: string | null;
+  color: string;
+  todos: Todo[];
+  overdue: number;
+};
+
+/** Group open todos by project; order overdue-heavy groups first, then by open count. */
+function buildGroups(todos: Todo[], projects: Project[]): Group[] {
+  const colorOf = new Map<string, string>();
+  for (const p of projects) colorOf.set(p.name, p.color ?? projectAutoColor(p.name));
+
+  // Named projects keyed by name; ungrouped todos kept apart so a real project
+  // literally named "none" can never collide with the No-project bucket.
+  const named = new Map<string, Todo[]>();
+  const ungrouped: Todo[] = [];
+  for (const t of todos.filter(isOpen)) {
+    if (t.projectName === null) {
+      ungrouped.push(t);
+      continue;
+    }
+    const list = named.get(t.projectName);
+    if (list) list.push(t);
+    else named.set(t.projectName, [t]);
+  }
+
+  const toGroup = (name: string | null, list: Todo[]): Group => ({
+    key: name ?? 'no-project',
+    name,
+    color: name ? (colorOf.get(name) ?? projectAutoColor(name)) : '#52525b',
+    todos: [...list].sort(byDueThenPriority),
+    overdue: list.filter(isOverdue).length,
+  });
+
+  const groups: Group[] = [];
+  for (const [name, list] of named) groups.push(toGroup(name, list));
+
+  // Overdue-bearing projects first (most overdue first), then by open count desc.
+  groups.sort((a, b) => {
+    if (a.overdue !== b.overdue) return b.overdue - a.overdue;
+    return b.todos.length - a.todos.length;
+  });
+
+  // No-project group always sinks to the end.
+  if (ungrouped.length) groups.push(toGroup(null, ungrouped));
+  return groups;
+}
+
+export default function DashboardView() {
+  const todosQuery = useQuery({
+    queryKey: ['todos', 'dashboard-source'],
+    queryFn: () => api.todos({ limit: '200' }),
+    refetchInterval: SYNC_INTERVAL_MS,
+    refetchOnWindowFocus: true,
+  });
+  const projectsQuery = useQuery({ queryKey: ['projects'], queryFn: api.projects });
+
+  const groups = useMemo(
+    () => buildGroups(todosQuery.data?.todos ?? [], projectsQuery.data?.projects ?? []),
+    [todosQuery.data, projectsQuery.data],
+  );
+
+  const totalOpen = groups.reduce((n, g) => n + g.todos.length, 0);
+
+  return (
+    <div className="mx-auto max-w-[820px] px-8 py-10 animate-fade-in">
+      <PageHeader
+        title="Dashboard"
+        subtitle={totalOpen > 0 ? `${totalOpen} open across ${groups.length} groups` : undefined}
+      />
+
+      <QuickAdd />
+
+      {todosQuery.isLoading ? (
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-[68px] animate-pulse rounded-xl bg-white/[0.03]" />
+          ))}
+        </div>
+      ) : groups.length === 0 ? (
+        <EmptyState
+          icon={<LayoutDashboard size={22} />}
+          title="Nothing open yet"
+          hint="Type above with a > prompt to add your first todo, or connect an agent via MCP (Settings → API tokens) so Claude files todos straight into your projects."
+        />
+      ) : (
+        <div className="flex flex-col gap-8">
+          {groups.map((g) => {
+            const shown = g.todos.slice(0, PER_GROUP);
+            const rest = g.todos.length - shown.length;
+            const target = g.name ? `/project/${encodeURIComponent(g.name)}` : '/all';
+            return (
+              <section key={g.key} data-testid="dashboard-group">
+                <div className="mb-2.5 flex items-center gap-2 px-1">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/10"
+                    style={{ background: g.color }}
+                  />
+                  <Link
+                    to={target}
+                    className="text-[13.5px] font-semibold text-zinc-100 hover:text-accent-300"
+                  >
+                    {g.name ?? 'No project'}
+                  </Link>
+                  <span className="text-[11px] text-zinc-500">{g.todos.length} open</span>
+                  {g.overdue > 0 && (
+                    <span className="text-[11px] text-accent-400">{g.overdue} overdue</span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {shown.map((t) => (
+                    <TodoItem key={t.id} todo={t} />
+                  ))}
+                </div>
+                {rest > 0 && (
+                  <Link
+                    to={target}
+                    className="mt-2 inline-flex items-center gap-1 px-1 text-[12px] font-medium text-zinc-500 hover:text-accent-300"
+                  >
+                    + {rest} more <ArrowRight size={12} />
+                  </Link>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
