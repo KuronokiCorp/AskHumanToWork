@@ -38,10 +38,20 @@ rollout with this records commit. **Follow-up queued:** DB connection budget rev
 maxInstances(3) × per-instance pool vs Supabase session-pool limit 15, plus rollout-overlap
 headroom (BACKLOG item).
 
-## Final acceptance (after the retried version-2 rollout)
-- POST no key → 401; wrong key → 401; real key → 200 with JSON summary. (See worklog for the
-  captured summary line.)
-- `gcloud scheduler jobs run` first run → state verified via `lastAttemptTime`/status.
+## Final acceptance — PASSED (rollout-2026-07-24-010 SUCCEEDED, retry worked)
+- POST no key → **401** ✓; wrong key → **401** ✓; real key → **200** ✓ with summary:
+  `{"ok":true,"remindersProcessed":0,"remindersFailed":11,"remindersDeferred":0,
+  "digestsSent":0,"polled":true,"cleaned":true,"billingReported":0}`
+- Scheduler first run (`gcloud scheduler jobs run`): `status: {}` (success),
+  `lastAttemptTime: 2026-07-24T10:37:22Z`; job ENABLED, next scheduleTime 10:40Z.
+- Secret version 1 (newline-tainted) **disabled**; version 2 live in rollout-010.
+
+## Known limitation surfaced by the first tick (pre-existing, NOT a release regression)
+`remindersFailed: 11` — the tick correctly claims due reminders, but delivery fails because
+**SMTP is not configured** (apphosting.yaml lists SMTP as "Later:"). Before this release these
+reminders couldn't even fire at scale-to-zero; now the engine works and delivery is the gap.
+At-least-once design reverts them to pending, so they retry each tick until SMTP exists.
+Flagged to the CEO: configuring SMTP (provider + creds = money/outward) is a CEO call.
 
 ## Phase-1 unblock
 Release done ⇒ the UI-regen phase 1 is unblocked. `feature/ui-regen-dashboard` cut off
