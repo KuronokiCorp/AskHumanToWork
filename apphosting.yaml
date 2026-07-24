@@ -27,8 +27,7 @@ env:
   # Secrets (Cloud Secret Manager, set via `firebase apphosting:secrets:set`):
   #   DATABASE_URL       Supabase session-pooler connection string
   #   SESSION_SECRET / ENCRYPTION_KEY   random 32-byte base64
-  # Later: SMTP_HOST/SMTP_PORT/SMTP_FROM (+ creds) for reminder emails,
-  #        ANTHROPIC_API_KEY for Claude-written morning digests
+  # Later: ANTHROPIC_API_KEY for Claude-written morning digests
   #
   # Per-todo AI assistant — MINIMAX_API_KEY is set (see the secret ref below),
   # so the panel is live. Billing overage stays off until Stripe is wired:
@@ -56,6 +55,21 @@ env:
   # CRON_SECRET created + IAM-granted 2026-07-24 (CEO-approved release) — ref live:
   - variable: CRON_SECRET
     secret: CRON_SECRET
+  # Reminder email delivery (CEO decision 2026-07-24): reuse the company
+  # info@vectech.co mailbox on Namecheap Private Email. SPF/DKIM are configured
+  # on vectech.co. Port 465 = implicit TLS (code enables `secure` for 465).
+  # SMTP_PASS copied from vectech-dc4e9/INQUIRY_SMTP_PASS (newline-stripped);
+  # on password rotation, re-copy a new version there → here.
+  - variable: SMTP_HOST
+    value: "smtp.privateemail.com"
+  - variable: SMTP_PORT
+    value: "465"
+  - variable: SMTP_USER
+    value: "info@vectech.co"
+  - variable: SMTP_FROM
+    value: "AskHumanToWork <info@vectech.co>"
+  - variable: SMTP_PASS
+    secret: SMTP_PASS
   - variable: MINIMAX_API_KEY
     secret: MINIMAX_API_KEY
   # Account region must match the key: api.minimax.io and api.minimaxi.com are
