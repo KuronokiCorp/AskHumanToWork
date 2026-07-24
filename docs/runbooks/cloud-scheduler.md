@@ -25,8 +25,13 @@ and runs everything now due.
 
 1. Create the secret and grant the backend access:
    ```sh
-   openssl rand -base64 32 | firebase apphosting:secrets:set CRON_SECRET --data-file -
+   openssl rand -hex 32 | tr -d '\n' | firebase apphosting:secrets:set CRON_SECRET --data-file -
    ```
+   **The `tr -d '\n'` is load-bearing** (learned 2026-07-24): without it the trailing newline
+   is stored INSIDE the secret, the server env keeps it, an HTTP header can never carry one,
+   and the constant-time compare fails forever (real key → 401). Same rule for ANY secret
+   compared against an HTTP header. Verify safely with a byte count, never by printing:
+   `gcloud secrets versions access latest --secret=CRON_SECRET | wc -c` → 64, not 65.
    Then uncomment the `CRON_SECRET` `- variable:/secret:` pair in `apphosting.yaml` and
    redeploy the backend.
 
