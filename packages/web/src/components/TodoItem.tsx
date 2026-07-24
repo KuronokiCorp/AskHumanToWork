@@ -72,7 +72,7 @@ export default function TodoItem({ todo }: { todo: Todo }) {
             <Link
               to={`/t/${todo.id}#assistant`}
               title="Ask AI about this"
-              className="shrink-0 rounded-md p-1 text-zinc-600 opacity-0 transition-colors hover:bg-white/5 hover:text-accent-400 group-hover:opacity-100"
+              className="shrink-0 rounded-md p-1 text-zinc-600 opacity-0 transition-colors hover:bg-white/5 hover:text-accent-400 focus-visible:opacity-100 focus-visible:text-accent-400 group-hover:opacity-100"
             >
               <Sparkles size={14} />
             </Link>

@@ -28,6 +28,15 @@ export default function TodoChat({ todoId }: { todoId: string }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Arriving from a row's sparkle affordance (/t/:id#assistant): React Router
+  // does not scroll to a hash on its own, so bring the panel into view here.
+  useEffect(() => {
+    if (window.location.hash === '#assistant') {
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [todoId]);
 
   const messages = useQuery({
     queryKey: ['todo-messages', todoId],
@@ -58,7 +67,7 @@ export default function TodoChat({ todoId }: { todoId: string }) {
   const outOfCredit = sendError?.status === 400 && /allowance|card|payment/i.test(sendError.message);
 
   return (
-    <div id="assistant" className="mt-4 scroll-mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-6">
+    <div id="assistant" ref={rootRef} className="mt-4 scroll-mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-6">
       <div className="mb-4 flex items-center gap-2">
         <Sparkles size={16} className="text-accent-400" />
         <h2 className="text-sm font-semibold text-zinc-100">AI assistant</h2>
