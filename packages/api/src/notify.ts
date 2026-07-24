@@ -8,7 +8,9 @@ import { env } from './env.js';
 const transport = nodemailer.createTransport({
   host: env.smtp.host,
   port: env.smtp.port,
-  secure: false,
+  secure: env.smtp.secure,
+  // No SMTP_USER ⇒ AUTH omitted entirely (local dev catchers reject empty logins).
+  auth: env.smtp.user ? { user: env.smtp.user, pass: env.smtp.pass } : undefined,
 });
 
 if (env.vapid.publicKey && env.vapid.privateKey) {

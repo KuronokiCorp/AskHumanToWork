@@ -27,6 +27,14 @@ export const env = {
     host: process.env.SMTP_HOST ?? 'localhost',
     port: Number(process.env.SMTP_PORT ?? 1025),
     from: process.env.SMTP_FROM ?? 'reminders@askhumantowork.local',
+    /** Empty user ⇒ no AUTH (local dev MailHog/maildev). Production sets both. */
+    user: process.env.SMTP_USER ?? '',
+    pass: process.env.SMTP_PASS ?? '',
+    /** Implicit TLS (SMTPS). Defaults on for port 465, overridable via SMTP_SECURE. */
+    secure:
+      process.env.SMTP_SECURE != null
+        ? process.env.SMTP_SECURE === 'true'
+        : Number(process.env.SMTP_PORT ?? 1025) === 465,
   },
   /**
    * Per-minute cap on credential endpoints (signup/login/reset) — brute-force
