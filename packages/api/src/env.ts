@@ -13,6 +13,12 @@ export const env = {
   sessionSecret: process.env.SESSION_SECRET ?? 'dev-session-secret-change-me-32chars!',
   /** Set COOKIE_SECURE=true behind HTTPS in production. */
   cookieSecure: process.env.COOKIE_SECURE === 'true',
+  /**
+   * Shared secret for the Cloud Scheduler cron endpoint (POST /api/internal/cron/tick).
+   * Unset ⇒ the endpoint is disabled (503) so it never runs unauthenticated. Set via
+   * Cloud Secret Manager at the CEO-approved deploy step. Generate: openssl rand -base64 32.
+   */
+  cronSecret: process.env.CRON_SECRET ?? '',
   /** Set TRUST_PROXY=true when behind a reverse proxy / load balancer. */
   trustProxy: process.env.TRUST_PROXY === 'true',
   /** Serve the built web app (packages/web/dist) from the API process. */
