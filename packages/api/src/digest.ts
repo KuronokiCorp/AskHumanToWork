@@ -9,6 +9,12 @@ export interface DigestPrefs {
   enabled?: boolean;
   /** Local hour (0-23) to deliver, default 8. */
   hour?: number;
+  /**
+   * User-local date (YYYY-MM-DD) the digest was last sent. Once-per-day guard so
+   * the frequent cron tick (every 5-15 min) sends at most one digest per local
+   * day — `isLocalHour` alone is true for the whole target hour.
+   */
+  lastSentOn?: string;
 }
 
 export function digestPrefsOf(user: UserRow): DigestPrefs {
@@ -20,6 +26,12 @@ export function isLocalHour(timezone: string, hour: number, at = new Date()): bo
   const offset = timezoneOffsetMinutes(timezone, at);
   const local = new Date(at.getTime() + offset * 60_000);
   return local.getUTCHours() === hour;
+}
+
+/** The user's local calendar date as YYYY-MM-DD (for the once-per-day digest guard). */
+export function localDateOf(timezone: string, at = new Date()): string {
+  const offset = timezoneOffsetMinutes(timezone, at);
+  return new Date(at.getTime() + offset * 60_000).toISOString().slice(0, 10);
 }
 
 function line(t: Todo): string {

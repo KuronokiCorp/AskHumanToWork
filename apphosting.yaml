@@ -46,6 +46,16 @@ env:
     secret: SESSION_SECRET
   - variable: ENCRYPTION_KEY
     secret: ENCRYPTION_KEY
+  # Cron tick secret (backlog #1): guards POST /api/internal/cron/tick, which a
+  # Cloud Scheduler job calls every ~10 min so reminders/digest stay reliable at
+  # minInstances=0. Create the secret AND the Scheduler job at the CEO-approved
+  # deploy step — see docs/runbooks/cloud-scheduler.md. Until CRON_SECRET is set
+  # the endpoint returns 503 (disabled), so it is safe to ship this ref ahead of
+  # the secret existing only if the secret is created before the reference is
+  # required; create the secret first, then uncomment the pair below.
+  # CRON_SECRET created + IAM-granted 2026-07-24 (CEO-approved release) — ref live:
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
   - variable: MINIMAX_API_KEY
     secret: MINIMAX_API_KEY
   # Account region must match the key: api.minimax.io and api.minimaxi.com are

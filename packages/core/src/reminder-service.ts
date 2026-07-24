@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { reminders, todos } from '@askhumantowork/db';
 import type { ReminderChannel } from '@askhumantowork/shared';
-import { QUEUES, type AppContext } from './context.js';
+import { type AppContext } from './context.js';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -26,15 +26,14 @@ export class ReminderService {
     return out.length ? out : ['email'];
   }
 
-  private async enqueue(reminderId: string, fireAt: Date): Promise<void> {
-    // keep the job around well past its fire time (far-future reminders)
-    const retentionSeconds = Math.ceil(Math.max(0, fireAt.getTime() - Date.now()) / 1000) + 30 * 24 * 3600;
-    await this.ctx.boss.send(QUEUES.reminder, { reminderId }, {
-      startAfter: fireAt,
-      retryLimit: 3,
-      retryDelay: 60,
-      retentionSeconds,
-    });
+  private async enqueue(_reminderId: string, _fireAt: Date): Promise<void> {
+    // No-op since backlog #1: reminders fire from the `reminders` table (the source
+    // of truth) via the Cloud Scheduler cron tick, not from delayed pg-boss jobs —
+    // the in-process pg-boss scheduler cannot fire at minInstances=0 while the
+    // instance is asleep. scheduleForTodo/snooze/scheduleOverdueNudge still write
+    // the table rows below; the tick (deliverDueReminders) polls and delivers them.
+    // Kept as a method so the call sites stay unchanged.
+    return;
   }
 
   /** Recompute the ladder for a todo (idempotent: cancels previous ladder first). */
