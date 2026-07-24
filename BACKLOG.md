@@ -16,7 +16,10 @@ failure. Top item is what a no-command session works on.*
    `docs/runbooks/cloud-scheduler.md`: `CRON_SECRET` created (IAM mirrored from
    MINIMAX_API_KEY bindings), ref enabled in apphosting.yaml (1d76e5a), release merge
    `develop`→`main` 66b9e89, Cloud Scheduler API enabled, job `askhumantowork-cron-tick`
-   created. Endpoint verified: no key → 401, wrong key → 401, Scheduler run → success.
+   created. Verification: no key → 401 ✓, wrong key → 401 ✓; real-key 200 + Scheduler first
+   run verified after the secret-v2 rollout retry (two incidents en route — trailing-newline
+   secret + EMAXCONNSESSION rollout failure — full account in
+   `docs/briefs/2026-07-24-cron-release-executed.md`).
    Residual: Roberto Carlos to record version/changelog for this release next session.
 2. **[PHASE 1] Web UI regeneration in the Claude Code aesthetic + project Dashboard as home
    (CEO instruction 2026-07-24; CEO decisions 2026-07-24: Q1=A app pages + Landing, mobile out
@@ -45,6 +48,11 @@ failure. Top item is what a no-command session works on.*
    `docs/specs/ai-plan-and-breakdown.md`. Estimate L (4–6 dev sessions + migration).
    **PM phasing call (authorized by coordinator 2026-07-24): delivered as phase 2 after item 2
    ships** — rationale in brief `docs/briefs/2026-07-24-ceo-decisions-and-specs.md`.
-5. Issue/intake triage with Neville: open user issues ranked
-6. Release hygiene with Roberto Carlos: changelog current, next version scoped, CEO-ready
-7. Test-coverage review with Toldo: consumer-path gaps
+5. **DB connection budget vs Supabase session pooler (found during 24 Jul release):** rollout
+   overlap crashed a new revision with `EMAXCONNSESSION` (session-pool limit 15). Review
+   per-instance postgres pool size × maxInstances(3) × rollout overlap headroom; consider a
+   smaller app pool or transaction-mode pooler for the API path. Estimate S. (Also: patch
+   `docs/runbooks/cloud-scheduler.md` secret command with `| tr -d '\n'` — same branch.)
+6. Issue/intake triage with Neville: open user issues ranked
+7. Release hygiene with Roberto Carlos: changelog current, next version scoped, CEO-ready
+8. Test-coverage review with Toldo: consumer-path gaps

@@ -27,7 +27,18 @@ logged), Scheduler job header updated, new rollout triggered (App Hosting pins t
 version at rollout). Version 1 to be disabled after final verification.
 **Runbook must be patched** to `| tr -d '\n'` — queued as a docs fix on the next feature branch.
 
-## Final acceptance (after the version-2 rollout)
+## Second incident: version-2 rollout FAILED (rollout-2026-07-24-009)
+The records push meant to carry secret v2 into a new rollout failed: Cloud Run revision
+crashed at startup — `PostgresError EMAXCONNSESSION: max clients reached in session mode
+(pool_size: 15)` (Supabase session pooler exhausted while old+new revisions overlapped and
+my 30s verification polling kept instances awake). NOT a secret/IAM problem. Traffic stayed
+safely on rollout-008 (secret v1 ⇒ endpoint fails closed with 401 — no exposure, reminders
+simply not yet live). Mitigation: stopped the polling, let instances scale down, retried the
+rollout with this records commit. **Follow-up queued:** DB connection budget review —
+maxInstances(3) × per-instance pool vs Supabase session-pool limit 15, plus rollout-overlap
+headroom (BACKLOG item).
+
+## Final acceptance (after the retried version-2 rollout)
 - POST no key → 401; wrong key → 401; real key → 200 with JSON summary. (See worklog for the
   captured summary line.)
 - `gcloud scheduler jobs run` first run → state verified via `lastAttemptTime`/status.
